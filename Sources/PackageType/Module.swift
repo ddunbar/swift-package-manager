@@ -48,7 +48,7 @@ public enum ModuleType {
     case Library, Executable
 }
 
-public protocol ModuleTypeProtocol {
+public protocol ModuleTypeProtocol: ModuleProtocol {
     var sources: Sources { get }
     var type: ModuleType { get }
     var mainFile: String { get }
@@ -64,7 +64,7 @@ extension ModuleTypeProtocol {
 }
 
 
-public protocol XcodeModuleProtocol: ModuleProtocol, ModuleTypeProtocol {
+public protocol XcodeModuleProtocol: ModuleTypeProtocol {
     var fileType: String { get }
 }
 

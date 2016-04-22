@@ -87,7 +87,43 @@ do {
 
     case .Doctor:
         doctor()
+        
+    case .Describe:
+        // Dump information on the package as understood by SwiftPM.
+        let (rootPackage, externalPackages) = try fetch(opts.path.root)
+        let (modules, externalModules, products) = try transmute(rootPackage, externalPackages: externalPackages)
 
+        // Dump the root package info.
+        print("Package: \(rootPackage.name)")
+        print("Version: \(rootPackage.version ?? "<unknown>")")
+        if !rootPackage.dependencies.isEmpty {
+            print("Dependencies: \(rootPackage.dependencies.map{$0.name}.sorted())")
+        }
+
+        // Dump information on the modules.
+        //
+        // FIXME: Topological order might be nicer here.
+        for module in modules.sorted(isOrderedBefore:{ $0.name < $1.name }) {
+            // Print the module header.
+            switch module {
+            case let module as CModule where !(module is ClangModule):
+                print("  \(module.name) (System Module)")
+            case let module as ModuleTypeProtocol where module.type == .Executable:
+                print("  \(module.name) (Executable)")
+            case let module as TestModule:
+                print("  \(module.name) (Tests)")
+            default:
+                print("  \(module.name)")
+            }
+
+            // Print the sources, if present.
+            if case let module as ModuleTypeProtocol = module {
+                for source in module.sources.relativePaths.sorted(isOrderedBefore: { $0 < $1 }) {
+                    print("    \(source)")
+                }
+            }
+        }
+        
     case .Version:
         print("Apple Swift Package Manager 0.1")
         
