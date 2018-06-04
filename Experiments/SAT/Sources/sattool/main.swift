@@ -8,5 +8,20 @@
 
 import SAT
 
-let result = solve()
-print("result = \(result)")
+let f = Formula(clauses: [
+        Clause(
+            a: (Variable(0), false),
+            b: (Variable(1), false),
+            c: (Variable(2), false)),
+        Clause(
+            a: (Variable(0), true),
+            b: (Variable(1), true),
+            c: (Variable(2), true)),
+    ])
+
+print("formula = \(f)")
+if let result = solve(formula: f) {
+    print("result = \(result)")
+} else {
+    print("not satisfiable")
+}
