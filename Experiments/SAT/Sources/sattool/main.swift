@@ -20,7 +20,7 @@ let f = Formula(clauses: [
     ])
 
 print("formula = \(f)")
-if let result = solve(formula: f) {
+if let result = try solve(formula: f) {
     print("result = \(result)")
 } else {
     print("not satisfiable")
