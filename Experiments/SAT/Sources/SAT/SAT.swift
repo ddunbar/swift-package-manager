@@ -72,11 +72,15 @@ public struct Formula: CustomStringConvertible {
 }
 
 /// A variable assignment for a logical formula.
-public struct Assignment {
+public struct Assignment: CustomStringConvertible {
     let trueBindings: Set<Variable>
 
     public init(trueBindings: Set<Variable>) {
         self.trueBindings = trueBindings
+    }
+
+    public var description: String {
+        return "{\(trueBindings.map{ "\($0)=T" }.sorted().joined(separator: ","))}"
     }
 }
 
