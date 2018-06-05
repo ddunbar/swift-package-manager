@@ -7,7 +7,7 @@
 // See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 
 /// A variable assignment for a logical formula.
-public struct Assignment: CustomStringConvertible {
+public struct Assignment: CustomStringConvertible, Equatable {
     let bindings: [Variable: Bool]
 
     public init(bindings: [Variable: Bool]) {

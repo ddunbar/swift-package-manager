@@ -1,6 +1,12 @@
 import XCTest
 
-extension SATTests {
+extension AssignmentTests {
+    static let __allTests = [
+        ("testBasics", testBasics),
+    ]
+}
+
+extension SolverTests {
     static let __allTests = [
         ("testBasics", testBasics),
     ]
@@ -9,7 +15,8 @@ extension SATTests {
 #if !os(macOS)
 public func __allTests() -> [XCTestCaseEntry] {
     return [
-        testCase(SATTests.__allTests),
+        testCase(AssignmentTests.__allTests),
+        testCase(SolverTests.__allTests),
     ]
 }
 #endif

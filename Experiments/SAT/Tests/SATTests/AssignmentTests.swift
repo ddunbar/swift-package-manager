@@ -10,8 +10,11 @@ import XCTest
 
 import SAT
 
-final class SATTests: XCTestCase {
+final class AssignmentTests: XCTestCase {
     func testBasics() {
-        XCTFail("not implemented")
+        let a = Assignment(bindings: [
+                Variable(0): true,
+                Variable(1): false ])
+        XCTAssertEqual(String(describing: a), "{ν0=T,ν1=F}")
     }
 }
