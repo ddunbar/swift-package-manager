@@ -16,11 +16,29 @@ public struct Formula: CustomStringConvertible {
     }
 
     /// Check if the formula is satisfied by a given assignment.
-    public func isSatisfied(by assignment: Assignment) -> Bool {
+    public func isSatisfied(by assignment: Assignment) -> Bool? {
+        var hadIndeterminate = false
+        
         // The formula is satisfied if all clauses are satisfied.
-        for clause in self.clauses where !clause.isSatisfied(by: assignment) {
-            return false
+        for clause in self.clauses {
+            guard let result = clause.isSatisfied(by: assignment) else {
+                // Track if we had any indeterminate clause.
+                hadIndeterminate = true
+                continue
+            }
+
+            // If any clause is unsatisfied, the formula is unsatisfiable.
+            if !result {
+                return false
+            }
         }
+
+        // If there was an indeterminate formula, and no unsatisfied clauses,
+        // the formula is indeterminate.
+        if hadIndeterminate {
+            return nil
+        }
+        
         return true
     }
 
@@ -46,11 +64,16 @@ public struct Clause: CustomStringConvertible {
     }
 
     /// Check if the clause is satisfied by a given assignment.
-    public func isSatisfied(by assignment: Assignment) -> Bool {
-        return (
-            assignment.trueBindings.contains(a.variable) == a.positive ||
-            assignment.trueBindings.contains(b.variable) == b.positive ||
-            assignment.trueBindings.contains(c.variable) == c.positive)
+    ///
+    /// If the clause references an unbound variable, the result is indeterminate.
+    public func isSatisfied(by assignment: Assignment) -> Bool? {
+        guard let aBinding = assignment.bindings[a.variable],
+              let bBinding = assignment.bindings[b.variable],
+              let cBinding = assignment.bindings[c.variable] else {
+            return nil
+        }
+        
+        return aBinding == a.positive || bBinding == b.positive || cBinding == c.positive
     }
 
     public var description: String {

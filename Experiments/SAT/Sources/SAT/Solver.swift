@@ -12,6 +12,7 @@ public protocol Solver {
     func solve(formula: Formula) throws -> Assignment?
 }
 
+/// A brute force SAT solver.
 public class BruteForceSolver: Solver {
     public func solve(formula: Formula) throws -> Assignment? {
         // Find all of the variables.
@@ -20,9 +21,10 @@ public class BruteForceSolver: Solver {
         // Iterate over all subsets of variables.
         for subset in variables.powerSet {
             // Create an assignment of these variables to true.
-            let candidate = Assignment(trueBindings: subset)
+            let candidate = Assignment(bindings: Dictionary(
+                    uniqueKeysWithValues: variables.map{ ($0, subset.contains($0)) }))
 
-            if formula.isSatisfied(by: candidate) {
+            if formula.isSatisfied(by: candidate)! {
                 return candidate
             }
         }

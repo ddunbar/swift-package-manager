@@ -8,14 +8,14 @@
 
 /// A variable assignment for a logical formula.
 public struct Assignment: CustomStringConvertible {
-    let trueBindings: Set<Variable>
+    let bindings: [Variable: Bool]
 
-    public init(trueBindings: Set<Variable>) {
-        self.trueBindings = trueBindings
+    public init(bindings: [Variable: Bool]) {
+        self.bindings = bindings
     }
 
     public var description: String {
-        let trueNames = trueBindings.map{ "\($0)=T" }.sorted()
-        return "{\(trueNames.joined(separator: ","))}"
+        let strings = bindings.map{ "\($0.0)=\($0.1 ? "T" : "F")" }.sorted()
+        return "{" + strings.joined(separator: ",") + "}"
     }
 }
