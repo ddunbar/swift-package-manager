@@ -70,18 +70,28 @@ public struct Clause: CustomStringConvertible {
     ///
     /// If the clause references an unbound variable, the result is indeterminate.
     public func isSatisfied(by assignment: Assignment) -> Bool? {
+        var hadIndeterminate = false
+
+        // The clause is satisfied if any term is satisfied.
         for term in terms {
-            // If the term is indeterminate, so is the clause.
-            //
-            // FIXME: This is wrong.
             guard let result = term.isSatisfied(by: assignment) else {
-                return nil
+                // Track if we had any indeterminate clause.
+                hadIndeterminate = true
+                continue
             }
 
+            // If any clause is satisfied, the clause is satisfiable.
             if result {
                 return true
             }
         }
+
+        // If there was an indeterminate term, and no satisfied terms, the
+        // clause is indeterminate.
+        if hadIndeterminate {
+            return nil
+        }
+
         return false
     }
 
