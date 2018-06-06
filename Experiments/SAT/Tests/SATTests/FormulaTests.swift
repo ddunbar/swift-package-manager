@@ -11,7 +11,7 @@ import XCTest
 import SAT
 
 final class FormulaTests: XCTestCase {
-    func testIsSatisfied() throws {
+    func testIsSatisfied() {
         let v0 = Variable(0)
         let v1 = Variable(1)
 
@@ -66,5 +66,19 @@ final class FormulaTests: XCTestCase {
                     a && !b)
             }
         }
+    }
+
+    func testDescription() {
+        XCTAssertEqual(
+            String(describing: Formula(clauses: [])),
+            "T")
+        XCTAssertEqual(
+            String(describing: Formula(clauses: Clause(terms: Term(Variable(0))))),
+            "(ν0)")
+        XCTAssertEqual(
+            String(describing: Formula(clauses:
+                    Clause(terms: Term(Variable(0))),
+                    Clause(terms: Term(Variable(1))))),
+            "(ν0) ⋏ (ν1)")
     }
 }

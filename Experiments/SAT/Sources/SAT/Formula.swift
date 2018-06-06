@@ -47,6 +47,11 @@ public struct Formula: CustomStringConvertible {
     }
 
     public var description: String {
+        // An empty formula is a special case (and true).
+        if clauses.isEmpty {
+            return "T"
+        }
+        
         return clauses.map{ String(describing: $0) }.joined(separator: " ⋏ ")
     }
 }
@@ -96,6 +101,11 @@ public struct Clause: CustomStringConvertible {
     }
 
     public var description: String {
+        // An empty clause is a special case (and false).
+        if terms.isEmpty {
+            return "F"
+        }
+        
         return "(" + terms.map{ String(describing: $0) }.joined(separator: " ⋎ ") + ")"
     }
 }

@@ -11,11 +11,25 @@ import XCTest
 import SAT
 
 final class TermTests: XCTestCase {
-    func testIsSatisfied() throws {
+    func testIsSatisfied() {
         let v0 = Variable(0)
 
         XCTAssertEqual(Term(v0).isSatisfied(by: Assignment(bindings: [:])), nil)
         XCTAssertEqual(Term(v0).isSatisfied(by: Assignment(bindings: [v0: true])), true)
         XCTAssertEqual(Term(v0).isSatisfied(by: Assignment(bindings: [v0: false])), false)
+    }
+
+    func testDescription() {
+        XCTAssertEqual(
+            String(describing: Clause(terms: [])),
+            "F")
+        XCTAssertEqual(
+            String(describing: Clause(terms: Term(Variable(0)))),
+            "(ν0)")
+        XCTAssertEqual(
+            String(describing: Clause(terms:
+                    Term(Variable(0)),
+                    Term(Variable(1)))),
+            "(ν0 ⋎ ν1)")
     }
 }
