@@ -16,33 +16,19 @@ final class SolverTests: XCTestCase {
 
         XCTAssertEqual(
             try solve(formula:
-                Formula(clauses: [
-                        Clause(
-                            a: (v0, true),
-                            b: (v0, true),
-                            c: (v0, true))])),
+                Formula(clauses: Clause(terms: Term(v0)))),
             Assignment(bindings: [v0: true]))
 
         XCTAssertEqual(
             try solve(formula:
-                Formula(clauses: [
-                        Clause(
-                            a: (v0, false),
-                            b: (v0, false),
-                            c: (v0, false))])),
+                Formula(clauses: Clause(terms: Term(not: v0)))),
             Assignment(bindings: [v0: false]))
 
         XCTAssertEqual(
             try solve(formula:
-                Formula(clauses: [
-                        Clause(
-                            a: (v0, true),
-                            b: (v0, true),
-                            c: (v0, true)),
-                        Clause(
-                            a: (v0, false),
-                            b: (v0, false),
-                            c: (v0, false))])),
+                Formula(clauses: 
+                    Clause(terms: Term(v0)),
+                    Clause(terms: Term(not: v0)))),
             nil)
     }
 }

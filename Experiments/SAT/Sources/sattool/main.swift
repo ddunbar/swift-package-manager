@@ -8,17 +8,15 @@
 
 import SAT
 
-let f = Formula(clauses: [
-        Clause(
-            a: (Variable(0), false),
-            b: (Variable(1), false),
-            c: (Variable(2), false)),
-        Clause(
-            a: (Variable(0), true),
-            b: (Variable(1), true),
-            c: (Variable(2), true)),
-    ])
-
+let f = Formula(clauses: 
+    Clause(terms: 
+        Term(not: Variable(0)),
+        Term(not: Variable(1)),
+        Term(not: Variable(2))),
+    Clause(terms: 
+        Term(Variable(0)),
+        Term(Variable(1)),
+        Term(Variable(2))))
 print("formula = \(f)")
 if let result = try solve(formula: f) {
     print("result = \(result)")

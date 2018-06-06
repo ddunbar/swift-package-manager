@@ -16,7 +16,7 @@ public protocol Solver {
 public class BruteForceSolver: Solver {
     public func solve(formula: Formula) throws -> Assignment? {
         // Find all of the variables.
-        let variables = Set(formula.clauses.flatMap{ [$0.a.variable, $0.b.variable, $0.c.variable] })
+        let variables = Set(formula.clauses.flatMap{ $0.terms.map{ $0.variable } })
 
         // Iterate over all subsets of variables.
         for subset in variables.powerSet {

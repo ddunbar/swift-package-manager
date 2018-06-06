@@ -6,13 +6,17 @@
 // See http://swift.org/LICENSE.txt for license information
 // See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 
-/// A boolean logical formatal in CNF.
+/// A boolean logical formula in CNF, a conjunction of disjunctive clauses.
 public struct Formula: CustomStringConvertible {
-    /// The list of clauses.
+    /// The list of clauses forming the conjunction.
     public let clauses: [Clause]
 
     public init(clauses: [Clause]) {
         self.clauses = clauses
+    }
+
+    public init(clauses: Clause...) {
+        self.init(clauses: clauses)
     }
 
     /// Check if the formula is satisfied by a given assignment.
@@ -47,43 +51,76 @@ public struct Formula: CustomStringConvertible {
     }
 }
 
-/// An individual clause in a boolean formula.
+/// An individual disjunctive clause in a boolean formula.
 public struct Clause: CustomStringConvertible {
-    let a: (variable: Variable, positive: Bool)
-    let b: (variable: Variable, positive: Bool)
-    let c: (variable: Variable, positive: Bool)
+    /// The terms in the clause.
+    public let terms: [Term]
 
-    public init(
-        a: (variable: Variable, positive: Bool),
-        b: (variable: Variable, positive: Bool),
-        c: (variable: Variable, positive: Bool)
-    ) {
-        self.a = a
-        self.b = b
-        self.c = c
+    /// Create a new clause from a list of terms.
+    public init(terms: [Term]) {
+        self.terms = terms
     }
 
+    /// Create a new clause from a list of terms.
+    public init(terms: Term...) {
+        self.init(terms: terms)
+    }
+    
     /// Check if the clause is satisfied by a given assignment.
     ///
     /// If the clause references an unbound variable, the result is indeterminate.
     public func isSatisfied(by assignment: Assignment) -> Bool? {
-        guard let aBinding = assignment.bindings[a.variable],
-              let bBinding = assignment.bindings[b.variable],
-              let cBinding = assignment.bindings[c.variable] else {
-            return nil
+        for term in terms {
+            // If the term is indeterminate, so is the clause.
+            //
+            // FIXME: This is wrong.
+            guard let result = term.isSatisfied(by: assignment) else {
+                return nil
+            }
+
+            if result {
+                return true
+            }
         }
-        
-        return aBinding == a.positive || bBinding == b.positive || cBinding == c.positive
+        return false
     }
 
     public var description: String {
-        return """
-        (\
-        \(a.variable)\(a.positive ? "" : "'") ⋎ \
-        \(b.variable)\(b.positive ? "" : "'") ⋎ \
-        \(c.variable)\(c.positive ? "" : "'")\
-        )
-        """
+        return "(" + terms.map{ String(describing: $0) }.joined(separator: " ⋎ ") + ")"
+    }
+}
+
+/// An individual term in a clause.
+public struct Term: CustomStringConvertible {
+    /// The variable the term refers to.
+    public let variable: Variable
+
+    /// Whether the variable must be true (if it is not negated).
+    public let positive: Bool
+
+    /// Create a new term.
+    public init (_ variable: Variable, positive: Bool = true) {
+        self.variable = variable
+        self.positive = positive
+    }
+
+    /// Create a new term for the negation of a variable.
+    public init(not variable: Variable) {
+        self.init(variable, positive: false)
+    }
+    
+    /// Check if the clause is satisfied by a given assignment.
+    ///
+    /// If the clause references an unbound variable, the result is indeterminate.
+    public func isSatisfied(by assignment: Assignment) -> Bool? {
+        guard let result = assignment.bindings[variable] else {
+            return nil
+        }
+        return result == positive
+    }
+
+    public var description: String {
+        return String(describing: variable) + (positive ? "" : "'")
     }
 }
 
