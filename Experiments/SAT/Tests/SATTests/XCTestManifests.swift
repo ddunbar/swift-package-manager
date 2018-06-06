@@ -8,7 +8,13 @@ extension AssignmentTests {
 
 extension ClauseTests {
     static let __allTests = [
-        ("testBasics", testBasics),
+        ("testIsSatisfied", testIsSatisfied),
+    ]
+}
+
+extension FormulaTests {
+    static let __allTests = [
+        ("testIsSatisfied", testIsSatisfied),
     ]
 }
 
@@ -20,7 +26,7 @@ extension SolverTests {
 
 extension TermTests {
     static let __allTests = [
-        ("testBasics", testBasics),
+        ("testIsSatisfied", testIsSatisfied),
     ]
 }
 
@@ -29,6 +35,7 @@ public func __allTests() -> [XCTestCaseEntry] {
     return [
         testCase(AssignmentTests.__allTests),
         testCase(ClauseTests.__allTests),
+        testCase(FormulaTests.__allTests),
         testCase(SolverTests.__allTests),
         testCase(TermTests.__allTests),
     ]

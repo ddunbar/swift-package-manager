@@ -11,7 +11,7 @@ import XCTest
 import SAT
 
 final class TermTests: XCTestCase {
-    func testBasics() throws {
+    func testIsSatisfied() throws {
         let v0 = Variable(0)
 
         XCTAssertEqual(Term(v0).isSatisfied(by: Assignment(bindings: [:])), nil)
