@@ -23,35 +23,33 @@ public extension Formula {
         var replacementClauses: [Clause] = []
         var nonUnitClauses: [Clause] = []
         for clause in clauses {
-            switch clause.terms.count {
-            case 0:
-                return Formula.unsatisfiable
-
-            case 1:
-                assert(!clause.terms.isEmpty)
-                let term = clause.terms[0]
-
-                // Check if the term already has an assignment.
-                if let priorValue = unitValues[term.variable] {
-                    // If so, this unit clause is either redundant or unsatisiable.
-                    if priorValue != term.positive {
-                        return Formula.unsatisfiable
-                    } else {
-                        continue
-                    }
-                }
-                
-                // Otherwise, accumulate the assignment.
-                replacementClauses.append(clause)
-                unitValues[term.variable] = term.positive
-
-            default:
+            // We only consider unit clauses first.
+            guard clause.terms.count == 1 else {
                 nonUnitClauses.append(clause)
+                continue
             }
+            
+            assert(!clause.terms.isEmpty)
+            let term = clause.terms[0]
+
+            // Check if the term already has an assignment.
+            if let priorValue = unitValues[term.variable] {
+                // If so, this unit clause is either redundant or unsatisiable.
+                if priorValue != term.positive {
+                    return Formula.unsatisfiable
+                } else {
+                    continue
+                }
+            }
+                
+            // Otherwise, accumulate the assignment.
+            replacementClauses.append(clause)
+            unitValues[term.variable] = term.positive
         }
 
         // Substitute all clauses.
         let assignment = Assignment(bindings: unitValues)
+        var hasNewUnits = false
         for clause in nonUnitClauses {
             guard let replacement = clause.propagating(assignment) else {
                 // If there is no replacement, the clause is true and can be dropped.
@@ -63,10 +61,17 @@ public extension Formula {
                 return Formula.unsatisfiable
             }
 
+            // Track whether we have uncovered new units.
+            if replacement.terms.count == 1 {
+                hasNewUnits = true
+            }
+            
             replacementClauses.append(replacement)
         }
 
-        return Formula(clauses: replacementClauses)
+        // Return the result, recursing if we discovered new units.
+        let result = Formula(clauses: replacementClauses)
+        return hasNewUnits ? result.propagatingUnits() : result
     }
 }
 

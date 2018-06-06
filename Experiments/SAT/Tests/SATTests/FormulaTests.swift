@@ -125,5 +125,16 @@ final class FormulaTests: XCTestCase {
                 Clause(terms: Term(v1)),
                 Clause(terms: Term(not: v0), Term(not: v1))).propagatingUnits(),
             Formula.unsatisfiable)
+
+        // Check a case requiring iteration towards a fixed point.
+        XCTAssertEqual(
+            Formula(clauses:
+                Clause(terms: Term(v0)),
+                Clause(terms: Term(not: v0), Term(v1)),
+                Clause(terms: Term(not: v0), Term(not: v1), Term(v2))).propagatingUnits(),
+            Formula(clauses:
+                Clause(terms: Term(v0)),
+                Clause(terms: Term(v1)),
+                Clause(terms: Term(v2))))
     }
 }
