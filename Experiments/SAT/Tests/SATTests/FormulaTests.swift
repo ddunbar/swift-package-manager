@@ -10,11 +10,12 @@ import XCTest
 
 import SAT
 
+private let v0 = Variable(0)
+private let v1 = Variable(1)
+private let v2 = Variable(2)
+
 final class FormulaTests: XCTestCase {
     func testIsSatisfied() {
-        let v0 = Variable(0)
-        let v1 = Variable(1)
-
         // Check a unary formula.
         XCTAssertEqual(Formula(clauses: Clause(terms: Term(v0))).isSatisfied(by:
                 Assignment(bindings: [:])), nil)
@@ -73,12 +74,33 @@ final class FormulaTests: XCTestCase {
             String(describing: Formula(clauses: [])),
             "T")
         XCTAssertEqual(
-            String(describing: Formula(clauses: Clause(terms: Term(Variable(0))))),
+            String(describing: Formula(clauses: Clause(terms: Term(v0)))),
             "(ν0)")
         XCTAssertEqual(
             String(describing: Formula(clauses:
-                    Clause(terms: Term(Variable(0))),
-                    Clause(terms: Term(Variable(1))))),
+                    Clause(terms: Term(v0)),
+                    Clause(terms: Term(v1)))),
             "(ν0) ⋏ (ν1)")
+    }
+
+    func testUnitPropagation() {
+        XCTAssertEqual(
+            Formula().propagatingUnits(),
+            Formula())
+
+        XCTAssertEqual(
+            Formula(clauses: Clause(terms: Term(v0))).propagatingUnits(),
+            Formula(clauses: Clause(terms: Term(v0))))
+
+        XCTAssertEqual(
+            Formula(clauses:
+                Clause(terms: Term(v0)),
+                // This clause will be removed.
+                Clause(terms: Term(v0), Term(v1), Term(v2)),
+                // This clause will have !ν0 removed.
+                Clause(terms: Term(not: v0), Term(v1), Term(v2))).propagatingUnits(),
+            Formula(clauses:
+                Clause(terms: Term(v0)),
+                Clause(terms: Term(v1), Term(v2))))
     }
 }

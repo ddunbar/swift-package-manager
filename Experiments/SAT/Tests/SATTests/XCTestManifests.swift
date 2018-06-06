@@ -9,6 +9,7 @@ extension AssignmentTests {
 extension ClauseTests {
     static let __allTests = [
         ("testIsSatisfied", testIsSatisfied),
+        ("testPropagation", testPropagation),
     ]
 }
 
@@ -16,6 +17,7 @@ extension FormulaTests {
     static let __allTests = [
         ("testDescription", testDescription),
         ("testIsSatisfied", testIsSatisfied),
+        ("testUnitPropagation", testUnitPropagation),
     ]
 }
 

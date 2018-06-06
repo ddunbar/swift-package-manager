@@ -7,7 +7,7 @@
 // See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 
 /// A boolean logical formula in CNF, a conjunction of disjunctive clauses.
-public struct Formula: CustomStringConvertible {
+public struct Formula: CustomStringConvertible, Equatable {
     /// The list of clauses forming the conjunction.
     public let clauses: [Clause]
 
@@ -19,6 +19,11 @@ public struct Formula: CustomStringConvertible {
         self.init(clauses: clauses)
     }
 
+    /// The canonical unsatisfiable formula.
+    static public var unsatisfiable: Formula {
+        return Formula(clauses: Clause(terms: []))
+    }
+    
     /// Check if the formula is satisfied by a given assignment.
     public func isSatisfied(by assignment: Assignment) -> Bool? {
         var hadIndeterminate = false
@@ -57,7 +62,7 @@ public struct Formula: CustomStringConvertible {
 }
 
 /// An individual disjunctive clause in a boolean formula.
-public struct Clause: CustomStringConvertible {
+public struct Clause: CustomStringConvertible, Equatable {
     /// The terms in the clause.
     public let terms: [Term]
 
@@ -111,7 +116,7 @@ public struct Clause: CustomStringConvertible {
 }
 
 /// An individual term in a clause.
-public struct Term: CustomStringConvertible {
+public struct Term: CustomStringConvertible, Hashable {
     /// The variable the term refers to.
     public let variable: Variable
 
@@ -145,7 +150,7 @@ public struct Term: CustomStringConvertible {
 }
 
 /// A formula variable.
-public struct Variable: Hashable, CustomStringConvertible {
+public struct Variable: CustomStringConvertible, Hashable {
     /// A unique ID for the variable.
     public let id: Int
 

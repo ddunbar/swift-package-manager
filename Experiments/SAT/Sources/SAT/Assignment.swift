@@ -8,7 +8,7 @@
 
 /// A variable assignment for a logical formula.
 public struct Assignment: CustomStringConvertible, Equatable {
-    let bindings: [Variable: Bool]
+    public let bindings: [Variable: Bool]
 
     public init(bindings: [Variable: Bool]) {
         self.bindings = bindings

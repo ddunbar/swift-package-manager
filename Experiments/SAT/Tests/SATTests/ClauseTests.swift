@@ -10,11 +10,11 @@ import XCTest
 
 import SAT
 
+private let v0 = Variable(0)
+private let v1 = Variable(1)
+
 final class ClauseTests: XCTestCase {
     func testIsSatisfied() {
-        let v0 = Variable(0)
-        let v1 = Variable(1)
-
         // Check a unary clause.
         XCTAssertEqual(Clause(terms: Term(v0)).isSatisfied(by: Assignment(bindings: [:])), nil)
         XCTAssertEqual(Clause(terms: Term(v0)).isSatisfied(by: Assignment(bindings: [v0: true])), true)
@@ -45,5 +45,33 @@ final class ClauseTests: XCTestCase {
                     a || !b)
             }
         }
+    }
+
+    func testPropagation() {
+        XCTAssertEqual(
+            Clause(terms: Term(v0)).propagating(Assignment(bindings: [:])),
+            Clause(terms: Term(v0)))
+        XCTAssertEqual(
+            Clause(terms: Term(v0)).propagating(Assignment(bindings: [v0: true])),
+            nil)
+        XCTAssertEqual(
+            Clause(terms: Term(v0)).propagating(Assignment(bindings: [v0: false])),
+            Clause(terms: []))
+
+        XCTAssertEqual(
+            Clause(terms: Term(v0), Term(not: v1)).propagating(Assignment(bindings: [:])),
+            Clause(terms: Term(v0), Term(not: v1)))
+        XCTAssertEqual(
+            Clause(terms: Term(v0), Term(not: v1)).propagating(Assignment(bindings: [v0: true])),
+            nil)
+        XCTAssertEqual(
+            Clause(terms: Term(v0), Term(not: v1)).propagating(Assignment(bindings: [v0: false])),
+            Clause(terms: Term(not: v1)))
+        XCTAssertEqual(
+            Clause(terms: Term(v0), Term(not: v1)).propagating(Assignment(bindings: [v1: true])),
+            Clause(terms: Term(v0)))
+        XCTAssertEqual(
+            Clause(terms: Term(v0), Term(not: v1)).propagating(Assignment(bindings: [v1: false])),
+            nil)
     }
 }
