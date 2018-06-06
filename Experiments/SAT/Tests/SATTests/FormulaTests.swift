@@ -102,5 +102,13 @@ final class FormulaTests: XCTestCase {
             Formula(clauses:
                 Clause(terms: Term(v0)),
                 Clause(terms: Term(v1), Term(v2))))
+
+        // Check a (non-trivial) case where the formula becomes unsatisfiable.
+        XCTAssertEqual(
+            Formula(clauses:
+                Clause(terms: Term(v0)),
+                Clause(terms: Term(v1)),
+                Clause(terms: Term(not: v0), Term(not: v1))).propagatingUnits(),
+            Formula.unsatisfiable)
     }
 }

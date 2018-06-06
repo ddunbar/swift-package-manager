@@ -41,7 +41,7 @@ public extension Formula {
             }
 
             // If this clause is empty, then the formula is unsatisfiable.
-            if clause.terms.isEmpty {
+            if replacement.terms.isEmpty {
                 return Formula.unsatisfiable
             }
 
