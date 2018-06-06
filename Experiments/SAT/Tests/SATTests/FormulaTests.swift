@@ -103,6 +103,21 @@ final class FormulaTests: XCTestCase {
                 Clause(terms: Term(v0)),
                 Clause(terms: Term(v1), Term(v2))))
 
+        // Check a case where the formula becomes unsatisfiable, due to inconsistent unit requirements.
+        XCTAssertEqual(
+            Formula(clauses:
+                Clause(terms: Term(v0)),
+                Clause(terms: Term(not: v0))).propagatingUnits(),
+            Formula.unsatisfiable)
+
+        // Check elimination of redundant units.
+        XCTAssertEqual(
+            Formula(clauses:
+                Clause(terms: Term(v0)),
+                Clause(terms: Term(v0))).propagatingUnits(),
+            Formula(clauses:
+                Clause(terms: Term(v0))))
+
         // Check a (non-trivial) case where the formula becomes unsatisfiable.
         XCTAssertEqual(
             Formula(clauses:

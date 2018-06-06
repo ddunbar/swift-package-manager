@@ -17,24 +17,42 @@ public extension Formula {
         // here. Should we have a normalization step somewhere, and assert
         // that things are normalized?
 
-        // First, find all units and their polarity.
+        // First, separate all unit and non-unit clauses, and find the implied
+        // assignment.
         var unitValues: [Variable: Bool] = [:]
-        for clause in clauses where clause.terms.count == 1 {
-            assert(!clause.terms.isEmpty)
-            let term = clause.terms[0]
-            unitValues[term.variable] = term.positive
+        var replacementClauses: [Clause] = []
+        var nonUnitClauses: [Clause] = []
+        for clause in clauses {
+            switch clause.terms.count {
+            case 0:
+                return Formula.unsatisfiable
+
+            case 1:
+                assert(!clause.terms.isEmpty)
+                let term = clause.terms[0]
+
+                // Check if the term already has an assignment.
+                if let priorValue = unitValues[term.variable] {
+                    // If so, this unit clause is either redundant or unsatisiable.
+                    if priorValue != term.positive {
+                        return Formula.unsatisfiable
+                    } else {
+                        continue
+                    }
+                }
+                
+                // Otherwise, accumulate the assignment.
+                replacementClauses.append(clause)
+                unitValues[term.variable] = term.positive
+
+            default:
+                nonUnitClauses.append(clause)
+            }
         }
 
         // Substitute all clauses.
         let assignment = Assignment(bindings: unitValues)
-        var replacementClauses: [Clause] = []
-        for clause in clauses {
-            // Ignore the unit clauses themselves.
-            if clause.terms.count == 1 {
-                replacementClauses.append(clause)
-                continue
-            }
-                
+        for clause in nonUnitClauses {
             guard let replacement = clause.propagating(assignment) else {
                 // If there is no replacement, the clause is true and can be dropped.
                 continue
