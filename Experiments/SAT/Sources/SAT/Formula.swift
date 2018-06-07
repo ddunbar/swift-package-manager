@@ -21,7 +21,7 @@ public struct Formula: CustomStringConvertible, Equatable {
 
     /// The canonical unsatisfiable formula.
     static public var unsatisfiable: Formula {
-        return Formula(clauses: Clause(terms: []))
+        return Formula(clauses: Clause())
     }
     
     /// Check if the formula is satisfied by a given assignment.

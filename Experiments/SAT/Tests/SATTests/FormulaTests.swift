@@ -140,12 +140,12 @@ final class FormulaTests: XCTestCase {
 
     func testPureLiteralEliminate() {
         XCTAssertEqual(
-            Formula().eliminatePureLiterals(),
+            Formula().eliminatingPureLiterals(),
             Formula())
 
         XCTAssertEqual(
             Formula(clauses:
-                Clause(terms: Term(v0))).eliminatePureLiterals(),
+                Clause(terms: Term(v0))).eliminatingPureLiterals(),
             Formula(clauses:
                 Clause(terms: Term(v0))))
 
@@ -153,7 +153,7 @@ final class FormulaTests: XCTestCase {
             Formula(clauses:
                 Clause(terms: Term(v0), Term(v1)),
                 Clause(terms: Term(v0), Term(not: v1)),
-                Clause(terms: Term(v1))).eliminatePureLiterals(),
+                Clause(terms: Term(v1))).eliminatingPureLiterals(),
             Formula(clauses:
                 Clause(terms: Term(v0)),
                 Clause(terms: Term(v1))))

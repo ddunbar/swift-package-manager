@@ -12,7 +12,7 @@ public extension Formula {
     /// The resulting formula will continue to contain a unit clause referencing
     /// any pure literals, so that the required polarity of it's assignment is
     /// implied.
-    public func eliminatePureLiterals() -> Formula {
+    public func eliminatingPureLiterals() -> Formula {
         // First, identify all pure literals.
         var literalValues: [Variable: Bool?] = [:]
         for clause in clauses {
