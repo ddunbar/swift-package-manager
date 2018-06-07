@@ -8,12 +8,17 @@
 
 /// An abstraction of a formula solver.
 public protocol Solver {
+    /// The number of "iterations" performed by the solver.
+    var iterations: Int { get }
+    
     /// Find a satisfying assignment for the given formula, if one exists.
     func solve(formula: Formula) throws -> Assignment?
 }
 
 /// A brute force SAT solver.
 public class BruteForceSolver: Solver {
+    public var iterations = 0
+    
     public init() {}
     
     public func solve(formula: Formula) throws -> Assignment? {
@@ -22,6 +27,8 @@ public class BruteForceSolver: Solver {
 
         // Iterate over all subsets of variables.
         for subset in variables.powerSet {
+            iterations += 1
+            
             // Create an assignment of these variables to true.
             let candidate = Assignment(bindings: Dictionary(
                     uniqueKeysWithValues: variables.map{ ($0, subset.contains($0)) }))
@@ -39,9 +46,13 @@ public class BruteForceSolver: Solver {
 ///
 /// See: https://en.wikipedia.org/wiki/DPLL_algorithm
 public class DPLLSolver: Solver {
+    public var iterations = 0
+    
     public init() {}
     
     public func solve(formula: Formula) throws -> Assignment? {
+        iterations += 1
+            
         // First, perform unit propagation and pure literal elimination.
         var formula = formula
         formula = formula.propagatingUnits()
@@ -87,5 +98,8 @@ public class DPLLSolver: Solver {
 }
 
 public func solve(formula: Formula) throws -> Assignment? {
-    return try DPLLSolver().solve(formula: formula)
+    let s = BruteForceSolver()
+    let result = try s.solve(formula: formula)
+    print("solved in \(s.iterations) iterations")
+    return result
 }

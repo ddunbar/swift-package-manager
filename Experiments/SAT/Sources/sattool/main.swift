@@ -6,20 +6,34 @@
 // See http://swift.org/LICENSE.txt for license information
 // See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 
+import Foundation
+
 import SAT
 
-let f = Formula(clauses: 
-    Clause(terms: 
-        Term(not: Variable(0)),
-        Term(not: Variable(1)),
-        Term(not: Variable(2))),
-    Clause(terms: 
-        Term(Variable(0)),
-        Term(Variable(1)),
-        Term(Variable(2))))
-print("formula = \(f)")
-if let result = try solve(formula: f) {
-    print("result = \(result)")
+// Load a formula from a DIMACS file, if an argument is given.
+let f: Formula
+if CommandLine.arguments.count <= 1 {
+    f = Formula(clauses: 
+        Clause(terms: 
+            Term(not: Variable(0)),
+            Term(not: Variable(1)),
+            Term(not: Variable(2))),
+        Clause(terms: 
+            Term(Variable(0)),
+            Term(Variable(1)),
+            Term(Variable(2))))
 } else {
-    print("not satisfiable")
+    let s = try String(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1]))
+    f = try DIMACSLoader(s).load()
+}
+
+print("formula = \(f)")
+for solver in [BruteForceSolver(), DPLLSolver()] as [Solver] {
+    print("solving with \(type(of: solver))")
+    if let result = try solver.solve(formula: f) {
+        print("... result = \(result)")
+    } else {
+        print("... not satisfiable")
+    }
+    print("... solved in \(solver.iterations) iterations")
 }
