@@ -25,6 +25,7 @@ extension FormulaTests {
 extension SolverTests {
     static let __allTests = [
         ("testBasics", testBasics),
+        ("testDPLLSolver", testDPLLSolver),
     ]
 }
 

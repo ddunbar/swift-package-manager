@@ -10,6 +10,10 @@ import XCTest
 
 import SAT
 
+private let v0 = Variable(0)
+private let v1 = Variable(1)
+private let v2 = Variable(2)
+
 final class SolverTests: XCTestCase {
     func testBasics() throws {
         let v0 = Variable(0) 
@@ -30,5 +34,21 @@ final class SolverTests: XCTestCase {
                     Clause(terms: Term(v0)),
                     Clause(terms: Term(not: v0)))),
             nil)
+    }
+
+    func testDPLLSolver() throws {
+        // Check a basic instance.
+        do {
+            let formula = Formula(clauses: 
+                Clause(terms: Term(not: v0), Term(not: v1)),
+                Clause(terms: Term(v0), Term(v1)))
+            guard let result = try DPLLSolver().solve(formula: formula) else {
+                XCTFail("formula was not solved, but should have been")
+                return
+            }
+            let r0 = result.bindings[v0]!
+            let r1 = result.bindings[v1]!
+            XCTAssertTrue((!r0 || !r1) && (r0 || r1))
+        }
     }
 }
