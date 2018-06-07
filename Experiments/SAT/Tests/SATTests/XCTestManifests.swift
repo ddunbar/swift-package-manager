@@ -17,6 +17,7 @@ extension FormulaTests {
     static let __allTests = [
         ("testDescription", testDescription),
         ("testIsSatisfied", testIsSatisfied),
+        ("testPureLiteralEliminate", testPureLiteralEliminate),
         ("testUnitPropagation", testUnitPropagation),
     ]
 }
