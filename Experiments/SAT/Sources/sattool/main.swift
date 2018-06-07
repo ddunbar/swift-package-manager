@@ -10,6 +10,13 @@ import Foundation
 
 import SAT
 
+func tidy(_ string: String) -> String {
+    if string.count < 100 {
+        return string
+    }
+    return string.prefix(100) + "..."
+}
+
 // Load a formula from a DIMACS file, if an argument is given.
 let f: Formula
 if CommandLine.arguments.count <= 1 {
@@ -27,11 +34,11 @@ if CommandLine.arguments.count <= 1 {
     f = try DIMACSLoader(s).load()
 }
 
-print("formula = \(f)")
-for solver in [BruteForceSolver(), DPLLSolver()] as [Solver] {
+print("formula = \(tidy(String(describing: f)))")
+for solver in [DPLLSolver()/*, BruteForceSolver()*/] as [Solver] {
     print("solving with \(type(of: solver))")
     if let result = try solver.solve(formula: f) {
-        print("... result = \(result)")
+        print("... result = \(tidy(String(describing: result)))")
     } else {
         print("... not satisfiable")
     }

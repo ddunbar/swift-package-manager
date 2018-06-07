@@ -56,13 +56,13 @@ public final class DIMACSLoader {
             // FIXME: This isn't right, the actual format allows other
             // whitespaces separators and doesn't require newline separation.
             let items = ln.split(separator: " ").filter{ !$0.isEmpty }
-            guard items.count == 4, items[3] == "0",
-                  let a = Int(items[0]),
-                  let b = Int(items[1]),
-                  let c = Int(items[2]) else {
+            guard items.count > 0, items.last! == "0" else {
                 throw Error.invalidClauseLine(String(ln))
             }
-            clauses.append(Clause(terms: [a, b, c].map { i in
+            clauses.append(Clause(terms: try items.dropLast().map { iStr in
+                        guard let i = Int(iStr) else {
+                            throw Error.invalidClauseLine(String(ln))
+                        }
                         return Term(Variable(abs(i)), positive: i < 0)
                     }))
         }
