@@ -39,6 +39,9 @@ for solver in [DPLLSolver()/*, BruteForceSolver()*/] as [Solver] {
     print("solving with \(type(of: solver))")
     if let result = try solver.solve(formula: f) {
         print("... result = \(tidy(String(describing: result)))")
+        if f.isSatisfied(by: result) != true {
+            fatalError("found invalid solution")
+        }
     } else {
         print("... not satisfiable")
     }
