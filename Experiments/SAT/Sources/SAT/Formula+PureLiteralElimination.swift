@@ -14,13 +14,19 @@ public extension Formula {
     /// implied.
     public func eliminatingPureLiterals() -> Formula {
         // First, identify all pure literals.
-        var literalValues: [Variable: Bool?] = [:]
+        var impureLiterals = Set<Variable>()
+        var literalValues: [Variable: Bool] = [:]
         for clause in clauses {
             for term in clause.terms {
+                // Ignore impure literals.
+                guard !impureLiterals.contains(term.variable) else {
+                    continue
+                }
+                
                 if let prior = literalValues[term.variable] {
-                    // If the value has been seen, but the polarity is
-                    // different, then this is not a pure literal.
+                    // If the value has been seen, then mark it as impure.
                     if prior != term.positive {
+                        impureLiterals.insert(term.variable)
                         literalValues[term.variable] = nil
                     }
                 } else {
@@ -30,16 +36,9 @@ public extension Formula {
             }
         }
 
-        // Create an assignment for all pure literals.
-        let assignment = Assignment(bindings:
-            Dictionary(uniqueKeysWithValues: literalValues.compactMap{ (key, value) in
-                    guard let positive = value else { return nil }
-                    return (key, positive)
-                }))
-
         // Create a new set of unit clauses for each binding.
         var replacementClauses: [Clause] = []
-        for (key, positive) in assignment.bindings.sorted(by: { $0.0.id < $1.0.id }) {
+        for (key, positive) in literalValues.sorted(by: { $0.0.id < $1.0.id }) {
             replacementClauses.append(Clause(terms: Term(key, positive: positive)))
         }
         

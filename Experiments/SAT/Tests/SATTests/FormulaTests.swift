@@ -157,5 +157,16 @@ final class FormulaTests: XCTestCase {
             Formula(clauses:
                 Clause(terms: Term(v0)),
                 Clause(terms: Term(v1))))
+
+        // Check a case with a non-even number of mixed literals.
+        XCTAssertEqual(
+            Formula(clauses:
+                Clause(terms: Term(v0)),
+                Clause(terms: Term(not: v0)),
+                Clause(terms: Term(v0))).eliminatingPureLiterals(),
+            Formula(clauses:
+                Clause(terms: Term(v0)),
+                Clause(terms: Term(not: v0)),
+                Clause(terms: Term(v0))))
     }
 }
