@@ -44,7 +44,7 @@ public extension Formula {
         
         // Drop clauses with pure literals.
         for clause in clauses {
-            if !clause.terms.contains(where: { literalValues.index(forKey: $0.variable) != nil }) {
+            if !clause.terms.contains(where: { literalValues.contains(key: $0.variable) }) {
                 replacementClauses.append(clause)
             }
         }
