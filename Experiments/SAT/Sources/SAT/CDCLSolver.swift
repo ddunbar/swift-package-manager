@@ -32,9 +32,7 @@ public class CDCLSolver: Solver {
 
         /// The currently induced assignment.
         public var currentAssignment: Assignment {
-            return Assignment(bindings: Dictionary(uniqueKeysWithValues: implications.nodes.map {
-                        ($0.variable, $0.value)
-                    }))
+            return implications.currentAssignment
         }
 
         /// Create an initial empty solution context.
@@ -101,6 +99,13 @@ public class CDCLSolver: Solver {
 
         /// The list of edges.
         public var edges: [Edge]
+
+        /// The currently induced assignment.
+        public var currentAssignment: Assignment {
+            return Assignment(bindings: Dictionary(uniqueKeysWithValues: nodes.map {
+                        ($0.variable, $0.value)
+                    }))
+        }
 
         public var description: String {
             return """
@@ -189,10 +194,9 @@ private extension CDCLSolver.Context {
         }
 
         // Perform unit propagation using the new binding.
-        guard let implications = propagateUnits(binding: selected, to: true) else {
+        guard let implications = propagateUnits(binding: selected, to: true, on: implications) else {
             // FIXME: We reached a conflict, we don't know how to do conflict resolution yet.
-            print("error: conflict resolution is not yet implemented")
-            return nil
+            fatalError("error: conflict resolution is not yet implemented")
         }
         
         // Create a new decision.
@@ -211,37 +215,82 @@ private extension CDCLSolver.Context {
     /// Perform unit propagation after a new assignment.
     ///
     /// - Returns: The new implication graph, if the assignment is consistent.
-    mutating func propagateUnits(binding variable: Variable, to value: Bool) -> CDCLSolver.ImplicationGraph? {
+    mutating func propagateUnits(
+        binding variable: Variable, to value: Bool, on implications: CDCLSolver.ImplicationGraph,
+        cause: Clause? = nil
+    ) -> CDCLSolver.ImplicationGraph?
+    {
         // Get the current assignment.
-        let assignment = self.currentAssignment
-        var implications = self.implications
+        let assignment = implications.currentAssignment
+        var implications = implications
 
+        if let prior = assignment.bindings[variable] {
+            // Ignore redundant bindings.
+            if prior == value {
+                return implications
+            }
+
+            // Otherwise, we found a conflict.
+            fatalError("FIXME: Handle redundant unit binding")
+        }
+        
         // First, add the new binding to the graph.
-        implications.nodes.append(CDCLSolver.ImplicationGraph.Node(
-                variable: variable, value: value, decisionLevel: self.decisions.count + 1))
+        let node = CDCLSolver.ImplicationGraph.Node(
+            variable: variable, value: value, decisionLevel: self.decisions.count + 1)
+        implications.nodes.append(node)
+
+        // Add the implication edges, if there is a cause.
+        if let cause = cause {
+            implications.edges += cause.terms.compactMap{ term in
+                // Ignore the node being bound.
+                if term.variable == variable {
+                    return nil
+                }
+
+                // Find the node where this term was bound.
+                return CDCLSolver.ImplicationGraph.Edge(
+                    source: implications.nodes.first(where: { $0.variable == term.variable })!,
+                    destination: node,
+                    cause: cause)
+            }
+        }
         
         // Iterate over every clause in the formula + learned clauses, looking
         // for new units.
         //
         // FIXME: This is fairly ugly and **very** slow.
+        var newUnits: [(Variable, value: Bool, cause: Clause)] = []
         for clause in formula.clauses + learnedClauses {
+            // Ignore formulas which don't contain the bound variable.
+            guard clause.terms.first(where: { $0.variable == variable }) != nil else { continue }
+            
             // If this clause is already satisfied, ignore it.
-            if let result = clause.isSatisfied(by: assignment), result {
+            if let result = clause.isSatisfied(by: assignment) {
+                assert(result)
                 continue
             }
             
-            // This clause has become a unit if it has two unassigned variables, and one is
-            //
-            // FIXME: What if it only has one unassigned variable? That
-            // shouldn't happen, but we don't currently enforce that.
+            // This clause has become a unit if it has two unassigned variables,
+            // and one is the variable being assigned.
             let unassignedVariables = Set(clause.terms.compactMap{ term in
                     return assignment.bindings.contains(key: term.variable) ? nil : term.variable
                 })
-            if unassignedVariables.count < 2 {
-                fatalError("FIXME: not implemented: handling of overly simple pre-existing clauses: \(clause)")
-            }
 
-            if unassignedVariables.count == 2 && unassignedVariables.contains(variable) {
+            // The unassigned variables should always include the variable being bound.
+            assert(unassignedVariables.contains(variable))
+            switch unassignedVariables.count {
+            case 1:
+                // The term has become fully bound.
+                let term = clause.terms.first(where: { $0.variable == variable })!
+                if term.positive == value {
+                    // The term is now satisfied, ignore it.
+                    continue
+                } else {
+                    // Otherwise, the clause is now unsatisfiable.
+                    return nil
+                }
+
+            case 2:
                 // We found a clause which will become satisfied or unit.
 
                 // FIXME: This code is probably broken if a clause can have
@@ -257,31 +306,25 @@ private extension CDCLSolver.Context {
                     let otherVariable = unassignedVariables.first(where: { $0 != variable })!
                     let otherTerm = clause.terms.first(where: { $0.variable == otherVariable })!
                     let otherValue = otherTerm.positive
-
-                    // Add to the implication graph.
-                    let node = CDCLSolver.ImplicationGraph.Node(
-                        variable: otherVariable, value: otherValue,
-                        decisionLevel: self.decisions.count + 1)
-                    implications.nodes.append(node)
-                    implications.edges += clause.terms.compactMap{ term in
-                        // Ignore the node being bound.
-                        if term.variable == otherVariable {
-                            return nil
-                        }
-
-                        // Find the node where this term was bound.
-                        return CDCLSolver.ImplicationGraph.Edge(
-                            source: implications.nodes.first(where: { $0.variable == term.variable })!,
-                            destination: node,
-                            cause: clause)
-                    }
-
-                    // FIXME: We need to recurse on unit propagation here.
+                    newUnits.append((otherVariable, otherValue, clause))
                 }
-                
+
+            default:
+                continue
             }
         }
-        
+
+        // Apply the new units.
+        for (otherVariable, otherValue, cause) in newUnits {
+            // Add to the implication graph.
+            if let result = propagateUnits(binding: otherVariable, to: otherValue, on: implications, cause: cause) {
+                implications = result
+            } else {
+                // FIXME: Allow representation of an unresolvable implication graph.
+                return nil
+            }
+        }
+
         return implications
     }
 }
