@@ -60,7 +60,7 @@ public class CDCLSolver: Solver {
     /// The graph of assignments resulting from prior decisions.
     public struct ImplicationGraph: CustomStringConvertible {
         /// The empty implication graph.
-        static let empty = ImplicationGraph(nodes: [], edges: [])
+        static let empty = ImplicationGraph(nodes: [], edges: [], bindings: [:])
         
         /// A node in the graph consists of a variable assignment.
         public struct Node: CustomStringConvertible {
@@ -95,16 +95,17 @@ public class CDCLSolver: Solver {
         }
 
         /// The list of nodes.
-        public var nodes: [Node]
+        public private(set) var nodes: [Node]
 
         /// The list of edges.
-        public var edges: [Edge]
+        public private(set) var edges: [Edge]
+
+        /// The current binding assignments.
+        public private(set) var bindings: [Variable: Bool]
 
         /// The currently induced assignment.
         public var currentAssignment: Assignment {
-            return Assignment(bindings: Dictionary(uniqueKeysWithValues: nodes.map {
-                        ($0.variable, $0.value)
-                    }))
+            return Assignment(bindings: bindings)
         }
 
         /// Bind a variable to a value.
@@ -114,9 +115,10 @@ public class CDCLSolver: Solver {
         ///   - value: The value for the variable.
         ///   - cause: If given, the clause which caused this binding.
         public mutating func bind(_ variable: Variable, to value: Bool, decisionLevel: Int, cause: Clause? = nil) {
-            // Add a new node for the binding.
-            //
             // FIXME: Handle inconsistent bindings here.
+            bindings[variable] = value
+
+            // Add a new node for the binding.
             let node = Node(variable: variable, value: value, decisionLevel: decisionLevel)
             nodes.append(node)
 
