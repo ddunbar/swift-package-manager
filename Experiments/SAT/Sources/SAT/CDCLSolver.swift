@@ -107,6 +107,31 @@ public class CDCLSolver: Solver {
                     }))
         }
 
+        /// Bind a variable to a value.
+        ///
+        /// - Parameters:
+        ///   - variable: The variable to bind.
+        ///   - value: The value for the variable.
+        ///   - cause: If given, the clause which caused this binding.
+        public mutating func bind(_ variable: Variable, to value: Bool, decisionLevel: Int, cause: Clause? = nil) {
+            // Add a new node for the binding.
+            //
+            // FIXME: Handle inconsistent bindings here.
+            let node = Node(variable: variable, value: value, decisionLevel: decisionLevel)
+            nodes.append(node)
+
+            // Add the implication edges, if there is a cause.
+            if let cause = cause {
+                // Add an edge for every term (except the variable being bound).
+                assert(cause.terms.first(where: { $0.variable == variable }) != nil)
+                for term in cause.terms where term.variable != variable {
+                    // Find the node where this term was bound.
+                    let source = nodes.first(where: { $0.variable == term.variable })!
+                    edges.append(Edge(source: source, destination: node, cause: cause))
+                }
+            }
+        }
+        
         public var description: String {
             return """
                 ImplicationGraph{
@@ -235,25 +260,7 @@ private extension CDCLSolver.Context {
         }
         
         // First, add the new binding to the graph.
-        let node = CDCLSolver.ImplicationGraph.Node(
-            variable: variable, value: value, decisionLevel: self.decisions.count + 1)
-        implications.nodes.append(node)
-
-        // Add the implication edges, if there is a cause.
-        if let cause = cause {
-            implications.edges += cause.terms.compactMap{ term in
-                // Ignore the node being bound.
-                if term.variable == variable {
-                    return nil
-                }
-
-                // Find the node where this term was bound.
-                return CDCLSolver.ImplicationGraph.Edge(
-                    source: implications.nodes.first(where: { $0.variable == term.variable })!,
-                    destination: node,
-                    cause: cause)
-            }
-        }
+        implications.bind(variable, to: value, decisionLevel: self.decisions.count + 1, cause: cause)
         
         // Iterate over every clause in the formula + learned clauses, looking
         // for new units.
