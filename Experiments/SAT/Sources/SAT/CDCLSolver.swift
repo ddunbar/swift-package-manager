@@ -109,7 +109,7 @@ public class CDCLSolver: Solver {
         public private(set) var bindings: [Variable: Bool]
 
         /// The list of discovered conflicts.
-        public private(set) var conflicts: [(Variable, decisionLevel: Int, cause: Clause?)]
+        public private(set) var conflicts: [(Variable, decisionLevel: Int, cause: Clause)]
 
         /// Whether this implication graph is in a conflict state.
         public var isInConflict: Bool {
@@ -137,6 +137,12 @@ public class CDCLSolver: Solver {
             if let prior = bindings[variable] {
                 // If so, see if it is a conflict.
                 if prior != value {
+                    guard let cause = cause else {
+                        // We never expect to see an explicit conflicting
+                        // binding (this would imply the algorithm made an
+                        // obvious false choice).
+                        fatalError("unexpected explicit conflict with no cause")
+                    }
                     conflicts.append((variable, decisionLevel, cause))
                 }
                 return false
@@ -166,7 +172,8 @@ public class CDCLSolver: Solver {
                 ImplicationGraph{
                     nodes: \(nodes),
                     edges: [
-                        \(edges.map{ String(describing: $0) }.joined(separator: ",\n        "))] }
+                        \(edges.map{ String(describing: $0) }.joined(separator: ",\n        "))],
+                    conflicts: \(conflicts) }
                 """
         }
     }
