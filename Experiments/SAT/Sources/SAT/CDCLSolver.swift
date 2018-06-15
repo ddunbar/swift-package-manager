@@ -25,6 +25,8 @@ public class CDCLSolver: Solver {
         public var decisions: [Decision] = []
 
         /// The current implication graph.
+        ///
+        /// - Invariant: The formula is not unsatisfiable under this graph.
         public var implications: ImplicationGraph = ImplicationGraph.empty
 
         /// The list of learned clauses.
@@ -32,13 +34,16 @@ public class CDCLSolver: Solver {
 
         /// The currently induced assignment.
         public var currentAssignment: Assignment {
-            return implications.currentAssignment
+            return implications.currentAssignment!
         }
 
         /// Create an initial empty solution context.
         public init(solver: CDCLSolver, formula: Formula) {
             self.solver = solver
             self.formula = formula
+
+            // FIXME: We should assert the formula is not trivially
+            // unsatisfiable (this would break our invariant).
         }
     }
     
@@ -60,7 +65,7 @@ public class CDCLSolver: Solver {
     /// The graph of assignments resulting from prior decisions.
     public struct ImplicationGraph: CustomStringConvertible {
         /// The empty implication graph.
-        static let empty = ImplicationGraph(nodes: [], edges: [], bindings: [:])
+        static let empty = ImplicationGraph(nodes: [], edges: [], bindings: [:], conflicts: [])
         
         /// A node in the graph consists of a variable assignment.
         public struct Node: CustomStringConvertible {
@@ -103,8 +108,20 @@ public class CDCLSolver: Solver {
         /// The current binding assignments.
         public private(set) var bindings: [Variable: Bool]
 
+        /// The list of discovered conflicts.
+        public private(set) var conflicts: [(Variable, decisionLevel: Int, cause: Clause?)]
+
+        /// Whether this implication graph is in a conflict state.
+        public var isInConflict: Bool {
+            return !conflicts.isEmpty
+        }
+        
         /// The currently induced assignment.
-        public var currentAssignment: Assignment {
+        public var currentAssignment: Assignment? {
+            guard conflicts.isEmpty else {
+                return nil
+            }
+            
             return Assignment(bindings: bindings)
         }
 
@@ -114,13 +131,21 @@ public class CDCLSolver: Solver {
         ///   - variable: The variable to bind.
         ///   - value: The value for the variable.
         ///   - cause: If given, the clause which caused this binding.
-        public mutating func bind(_ variable: Variable, to value: Bool, decisionLevel: Int, cause: Clause? = nil) {
-            // FIXME: Handle inconsistent bindings here.
-            bindings[variable] = value
+        /// - Returns: True if the binding was added (false if the variable was already bound).
+        public mutating func bind(_ variable: Variable, to value: Bool, decisionLevel: Int, cause: Clause? = nil) -> Bool {
+            // Check if this value is already bound...
+            if let prior = bindings[variable] {
+                // If so, see if it is a conflict.
+                if prior != value {
+                    conflicts.append((variable, decisionLevel, cause))
+                }
+                return false
+            }
 
             // Add a new node for the binding.
             let node = Node(variable: variable, value: value, decisionLevel: decisionLevel)
             nodes.append(node)
+            bindings[variable] = value
 
             // Add the implication edges, if there is a cause.
             if let cause = cause {
@@ -132,6 +157,8 @@ public class CDCLSolver: Solver {
                     edges.append(Edge(source: source, destination: node, cause: cause))
                 }
             }
+
+            return true
         }
         
         public var description: String {
@@ -221,7 +248,10 @@ private extension CDCLSolver.Context {
         }
 
         // Perform unit propagation using the new binding.
-        guard let implications = propagateUnits(binding: selected, to: true, on: implications) else {
+        let next = propagateUnits(binding: selected, to: true, on: implications)
+
+        // If we found a conflict, resolve it.
+        if next.isInConflict {
             // FIXME: We reached a conflict, we don't know how to do conflict resolution yet.
             fatalError("error: conflict resolution is not yet implemented")
         }
@@ -234,7 +264,7 @@ private extension CDCLSolver.Context {
 
         // Update the context.
         self.decisions.append(decision)
-        self.implications = implications
+        self.implications = next
 
         return .decision(decision)
     }
@@ -245,24 +275,25 @@ private extension CDCLSolver.Context {
     mutating func propagateUnits(
         binding variable: Variable, to value: Bool, on implications: CDCLSolver.ImplicationGraph,
         cause: Clause? = nil
-    ) -> CDCLSolver.ImplicationGraph?
+    ) -> CDCLSolver.ImplicationGraph
     {
         // Get the current assignment.
-        let assignment = implications.currentAssignment
+        guard let assignment = implications.currentAssignment else {
+            // If the graph is in conflict, stop propagation.
+            //
+            // FIXME: Is it ever worth continuing propagation? It seems like
+            // there might be value in potentially deriving multiple learned
+            // clauses in this case.
+            return implications
+        }
         var implications = implications
 
-        if let prior = assignment.bindings[variable] {
-            // Ignore redundant bindings.
-            if prior == value {
-                return implications
-            }
-
-            // Otherwise, we found a conflict.
-            fatalError("FIXME: Handle redundant unit binding")
-        }
         
         // First, add the new binding to the graph.
-        implications.bind(variable, to: value, decisionLevel: self.decisions.count + 1, cause: cause)
+        guard implications.bind(variable, to: value, decisionLevel: self.decisions.count + 1, cause: cause) else {
+            // If the variable was already bound, we are done.
+            return implications
+        }
         
         // Iterate over every clause in the formula + learned clauses, looking
         // for new units.
@@ -287,19 +318,7 @@ private extension CDCLSolver.Context {
 
             // The unassigned variables should always include the variable being bound.
             assert(unassignedVariables.contains(variable))
-            switch unassignedVariables.count {
-            case 1:
-                // The term has become fully bound.
-                let term = clause.terms.first(where: { $0.variable == variable })!
-                if term.positive == value {
-                    // The term is now satisfied, ignore it.
-                    continue
-                } else {
-                    // Otherwise, the clause is now unsatisfiable.
-                    return nil
-                }
-
-            case 2:
+            if unassignedVariables.count == 2 {
                 // We found a clause which will become satisfied or unit.
 
                 // FIXME: This code is probably broken if a clause can have
@@ -317,21 +336,13 @@ private extension CDCLSolver.Context {
                     let otherValue = otherTerm.positive
                     newUnits.append((otherVariable, otherValue, clause))
                 }
-
-            default:
-                continue
             }
         }
 
         // Apply the new units.
         for (otherVariable, otherValue, cause) in newUnits {
             // Add to the implication graph.
-            if let result = propagateUnits(binding: otherVariable, to: otherValue, on: implications, cause: cause) {
-                implications = result
-            } else {
-                // FIXME: Allow representation of an unresolvable implication graph.
-                return nil
-            }
+            implications = propagateUnits(binding: otherVariable, to: otherValue, on: implications, cause: cause)
         }
 
         return implications
