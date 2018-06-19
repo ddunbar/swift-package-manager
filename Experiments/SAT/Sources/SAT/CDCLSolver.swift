@@ -27,7 +27,9 @@ public class CDCLSolver: Solver {
         /// The current implication graph.
         ///
         /// - Invariant: The formula is not unsatisfiable under this graph.
-        public var implications: ImplicationGraph = ImplicationGraph.empty
+        public var implications: ImplicationGraph {
+            return decisions.last?.implications ?? ImplicationGraph.empty
+        }
 
         /// The list of learned clauses.
         public var learnedClauses: [Clause] = []
@@ -270,7 +272,6 @@ private extension CDCLSolver.Context {
             variable: selected, value: true,
             implications: next)
         self.decisions.append(decision)
-        self.implications = next
 
         return .decision(decision)
     }
