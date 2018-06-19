@@ -10,6 +10,7 @@ extension ClauseTests {
     static let __allTests = [
         ("testIsSatisfied", testIsSatisfied),
         ("testPropagation", testPropagation),
+        ("testResolution", testResolution),
     ]
 }
 

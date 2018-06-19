@@ -12,6 +12,7 @@ import SAT
 
 private let v0 = Variable(0)
 private let v1 = Variable(1)
+private let v2 = Variable(2)
 
 final class ClauseTests: XCTestCase {
     func testIsSatisfied() {
@@ -73,5 +74,31 @@ final class ClauseTests: XCTestCase {
         XCTAssertEqual(
             Clause(terms: Term(v0), Term(not: v1)).propagating(Assignment(bindings: [v1: false])),
             nil)
+    }
+
+    func testResolution() {
+        XCTAssertEqual(
+            Clause(terms: Term(v0)).resolution(with:
+                Clause(terms: Term(not: v0)),
+                on: v0),
+            Clause(terms: []))
+
+        XCTAssertEqual(
+            Clause(terms: Term(v0), Term(v1)).resolution(with:
+                Clause(terms: Term(not: v0), Term(not: v1)),
+                on: v0),
+            nil)
+
+        XCTAssertEqual(
+            Clause(terms: Term(v0), Term(v1)).resolution(with:
+                Clause(terms: Term(not: v0), Term(v1)),
+                on: v0),
+            Clause(terms: Term(v1)))
+
+        XCTAssertEqual(
+            Clause(terms: Term(v0), Term(v1)).resolution(with:
+                Clause(terms: Term(not: v0), Term(v2)),
+                on: v0),
+            Clause(terms: Term(v1), Term(v2)))
     }
 }

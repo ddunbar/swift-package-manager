@@ -105,6 +105,41 @@ public struct Clause: CustomStringConvertible, Equatable {
         return false
     }
 
+    /// Compute the resolution operation of two clauses, where `variable` occurs
+    /// with mixed polarity in each.
+    ///
+    /// - Returns: The resolution, unless the result is tautological.
+    public func resolution(with clause: Clause, on variable: Variable) -> Clause? {
+        var terms: [Term] = []
+        var polarities: [Variable: Bool] = [:]
+        var hasNegative = false, hasPositive = false
+        for term in self.terms + clause.terms {
+            if term.variable == variable {
+                if term.positive {
+                    assert(!hasPositive)
+                    hasPositive = true
+                } else {
+                    assert(!hasNegative)
+                    hasNegative = true
+                }
+            } else {
+                // Check if we have already seen this term.
+                if let prior = polarities[term.variable] {
+                    if term.positive != prior {
+                        // We found a tautology.
+                        return nil
+                    }
+                    continue
+                }
+
+                polarities[term.variable] = term.positive
+                terms.append(term)
+            }
+        }
+        assert(hasPositive && hasNegative)
+        return Clause(terms: terms)
+    }
+    
     public var description: String {
         // An empty clause is a special case (and false).
         if terms.isEmpty {
