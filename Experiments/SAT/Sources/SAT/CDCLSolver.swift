@@ -255,7 +255,8 @@ private extension CDCLSolver.Context {
         }
 
         // Perform unit propagation using the new binding.
-        let next = propagateUnits(binding: selected, to: true, on: implications)
+        let decisionLevel = decisions.count
+        let next = propagateUnits(binding: selected, to: true, at: decisionLevel, on: implications)
 
         // If we found a conflict, resolve it.
         if next.isInConflict {
@@ -263,13 +264,11 @@ private extension CDCLSolver.Context {
             fatalError("error: conflict resolution is not yet implemented")
         }
         
-        // Create a new decision.
+        // Record the decision and update the context.
         let decision = CDCLSolver.Decision(
-            level: decisions.count + 1,
+            level: decisionLevel,
             variable: selected, value: true,
-            implications: implications)
-
-        // Update the context.
+            implications: next)
         self.decisions.append(decision)
         self.implications = next
 
@@ -279,8 +278,9 @@ private extension CDCLSolver.Context {
     /// Perform unit propagation after a new assignment.
     ///
     /// - Returns: The new implication graph, if the assignment is consistent.
-    mutating func propagateUnits(
-        binding variable: Variable, to value: Bool, on implications: CDCLSolver.ImplicationGraph,
+    func propagateUnits(
+        binding variable: Variable, to value: Bool, at decisionLevel: Int,
+        on implications: CDCLSolver.ImplicationGraph,
         cause: Clause? = nil
     ) -> CDCLSolver.ImplicationGraph
     {
@@ -295,9 +295,8 @@ private extension CDCLSolver.Context {
         }
         var implications = implications
 
-        
         // First, add the new binding to the graph.
-        guard implications.bind(variable, to: value, decisionLevel: self.decisions.count + 1, cause: cause) else {
+        guard implications.bind(variable, to: value, decisionLevel: decisionLevel, cause: cause) else {
             // If the variable was already bound, we are done.
             return implications
         }
@@ -349,7 +348,8 @@ private extension CDCLSolver.Context {
         // Apply the new units.
         for (otherVariable, otherValue, cause) in newUnits {
             // Add to the implication graph.
-            implications = propagateUnits(binding: otherVariable, to: otherValue, on: implications, cause: cause)
+            implications = propagateUnits(binding: otherVariable, to: otherValue, at: decisionLevel,
+                on: implications, cause: cause)
         }
 
         return implications
