@@ -41,11 +41,9 @@ public class CDCLSolver: Solver {
 
         /// Create an initial empty solution context.
         public init(solver: CDCLSolver, formula: Formula) {
+            assert(formula != Formula.unsatisfiable)
             self.solver = solver
             self.formula = formula
-
-            // FIXME: We should assert the formula is not trivially
-            // unsatisfiable (this would break our invariant).
         }
     }
     
@@ -196,6 +194,11 @@ public class CDCLSolver: Solver {
     public init() {}
 
     public func solveWithIntermediateStates(formula: Formula) -> AnySequence<IntermediateOrResult> {
+        // The unsatisfiable formula is a special case.
+        if formula == Formula.unsatisfiable {
+            return AnySequence([.result(nil)])
+        }
+
         let context = Context(solver: self, formula: formula)
         var done = false
         let result = sequence(state: context) { context -> IntermediateOrResult? in

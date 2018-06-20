@@ -16,8 +16,6 @@ private let v2 = Variable(2)
 
 final class SolverTests: XCTestCase {
     func testBasics() throws {
-        let v0 = Variable(0) 
-
         XCTAssertEqual(
             try solve(formula:
                 Formula(clauses: Clause(terms: Term(v0)))),
