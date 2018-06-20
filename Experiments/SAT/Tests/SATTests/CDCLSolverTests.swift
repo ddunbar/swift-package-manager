@@ -61,4 +61,30 @@ final class CDCDLSolverTests: XCTestCase {
                     Clause(terms: Term(v0), Term(v1)))),
             Assignment(bindings: [v0: true]))
     }
+
+    func testConflictResolution() {
+        do {
+            var igraph = CDCLSolver.ImplicationGraph.empty
+            XCTAssertTrue(igraph.bind(v0, to: true, decisionLevel: 0, cause: nil))
+            XCTAssertTrue(igraph.bind(v1, to: true, decisionLevel: 1, cause: nil))
+            XCTAssertTrue(igraph.bind(v2, to: true, decisionLevel: 1, cause: Clause(terms: Term(not: v1), Term(v2))))
+            XCTAssertFalse(igraph.bind(v2, to: false, decisionLevel: 1, cause: Clause(terms: Term(not: v1), Term(not: v2))))
+            XCTAssertEqual(
+                igraph.analyzeConflict(),
+                Clause(terms: Term(not: v1)))
+        }
+
+        do {
+            var igraph = CDCLSolver.ImplicationGraph.empty
+            XCTAssertTrue(igraph.bind(v0, to: true, decisionLevel: 0, cause: nil))
+            XCTAssertTrue(igraph.bind(v1, to: true, decisionLevel: 1, cause: nil))
+            XCTAssertTrue(igraph.bind(v2, to: true, decisionLevel: 1, cause: Clause(terms:
+                        Term(not: v0), Term(not: v1), Term(v2))))
+            XCTAssertFalse(igraph.bind(v2, to: false, decisionLevel: 1, cause: Clause(terms:
+                        Term(not: v0), Term(not: v1), Term(not: v2))))
+            XCTAssertEqual(
+                igraph.analyzeConflict(),
+                Clause(terms: Term(not: v0), Term(not: v1)))
+        }
+    }
 }

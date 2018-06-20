@@ -68,10 +68,10 @@ public class CDCLSolver: Solver {
     /// The graph of assignments resulting from prior decisions.
     public struct ImplicationGraph: CustomStringConvertible {
         /// The empty implication graph.
-        static let empty = ImplicationGraph(nodes: [], edges: [], bindings: [:], conflicts: [])
+        public static let empty = ImplicationGraph(nodes: [], edges: [], bindings: [:], conflicts: [])
         
         /// A node in the graph consists of a variable assignment.
-        public struct Node: CustomStringConvertible {
+        public struct Node: CustomStringConvertible, Equatable {
             /// The variable that was selected.
             public let variable: Variable
 
@@ -170,6 +170,54 @@ public class CDCLSolver: Solver {
             return true
         }
         
+        /// Analyze the graph (presumed to be in a conflict state) to produce a new
+        /// clause to learn.
+        ///
+        /// The resulting clause is guaranteed to be consistent with the original
+        /// formula.
+        public func analyzeConflict() -> Clause {
+            /// Find an implied variable (one not set via a direct decision) in the
+            /// clause which was set at the given `decisionLevel`, if present.
+            ///
+            /// The clause is presumed to only have nodes which have been
+            /// assigned. (FIXME: If we relaxed that restriction, this would make
+            /// sense as a general purpose method, but it would be less resilient to
+            /// bugs).
+            func findImpliedVariable(in clause: Clause, at decisionLevel: Int) -> Variable? {
+                for term in clause.terms {
+                    let variable = term.variable
+                    let node = nodes.first(where: { $0.variable == variable })!
+
+                    if node.decisionLevel == decisionLevel,
+                    edges.first(where: { $0.destination == node }) != nil {
+                        return variable
+                    }
+                }
+                return nil
+            }
+
+            precondition(isInConflict)
+
+            // We currently only handle a single conflict.
+            guard conflicts.count == 1 else {
+                fatalError("unexpected multiple conflicts, not yet supported")
+            }
+
+            let decisionLevel = conflicts[0].decisionLevel
+            var clause = conflicts[0].cause
+
+            // While there are implied variables at the current level, perform a resolution.
+            while let variable = findImpliedVariable(in: clause, at: decisionLevel) {
+                // Select a predecessor.
+                let implication = edges.first(where: { $0.destination.variable == variable })!
+
+                // Compute the resolution of the implication cause and the result.
+                clause = clause.resolution(with: implication.cause, on: variable)!
+            }
+            
+            return clause
+        }
+
         public var description: String {
             return """
                 ImplicationGraph{
