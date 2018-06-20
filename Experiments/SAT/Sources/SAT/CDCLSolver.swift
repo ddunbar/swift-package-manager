@@ -235,6 +235,8 @@ public class CDCLSolver: Solver {
     case trivialUnitPropagation([Variable: Bool])
         /// An individual decision which was made.
     case decision(Decision)
+        /// A clause was learned as a result of a conflict.
+    case learned(Clause, from: ImplicationGraph)
     }
 
     public enum IntermediateOrResult {
@@ -351,13 +353,30 @@ private extension CDCLSolver.Context {
         }
 
         // Perform unit propagation using the new binding.
+        //
+        // NOTE: We are allowed to always choose true here, because at this
+        // point we know there are no trivial units.
         let decisionLevel = decisions.count
         let next = propagateUnits(binding: selected, to: true, at: decisionLevel, on: implications)
 
         // If we found a conflict, resolve it.
         if next.isInConflict {
-            // FIXME: We reached a conflict, we don't know how to do conflict resolution yet.
-            fatalError("error: conflict resolution is not yet implemented")
+            // Derive a conflict clause.
+            let clause = next.analyzeConflict()
+
+            // Learn the clause.
+            learnedClauses.append(clause)
+            
+            // Find the second highest decision level assigned in this clause,
+            // then backtrack above that (i.e. backtrack to a point where we can
+            // reconsider the impact of that choice in light of this new
+            // clause).
+            let backtrackLevel = clause.terms.compactMap{ term -> Int? in
+                let node = next.nodes.first(where: { $0.variable == term.variable })!
+                return node.decisionLevel != decisions.count ? node.decisionLevel : nil }.max() ?? 0
+            self.decisions = Array(self.decisions[0 ..< backtrackLevel])
+            
+            return .learned(clause, from: next)
         }
         
         // Record the decision and update the context.

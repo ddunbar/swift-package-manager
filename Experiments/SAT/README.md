@@ -40,3 +40,4 @@ An experimental SAT solver, for potential use in dependency resolution.
 * A Lightweight Component Caching Scheme for Satisfiability Solvers: https://pdfs.semanticscholar.org/161a/4ba80d447f9f60fd1246e51b360ec78c13de.pdf?_ga=2.108766726.500134522.1528399382-2141622216.1522385823
 * Predicting Learnt Clauses Quality in Modern SAT Solvers: https://www.ijcai.org/Proceedings/09/Papers/074.pdf
 * Chaff: Engineering an Efficient SAT Solver: https://www.princeton.edu/~chaff/publication/DAC2001v56.pdf
+* Conflict-Driven Clause Learning SAT Solvers (Chapter 4 of Handbook of Satisfiability): http://satassociation.org/articles/FAIA185-0131.pdf
