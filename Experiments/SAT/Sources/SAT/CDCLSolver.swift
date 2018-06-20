@@ -22,6 +22,9 @@ public class CDCLSolver: Solver {
         ///
         /// This stack always represents a _consistent_ set of assignments (the
         /// formula is not unsatisfied by the induced assignment).
+        ///
+        /// In addition, unless the decision stack is empty then there are no
+        /// trivial unit clauses.
         public var decisions: [Decision] = []
 
         /// The current implication graph.
@@ -180,6 +183,8 @@ public class CDCLSolver: Solver {
 
     /// An arbitrary intermediate state of the solver algorithm.
     public enum IntermediateState {
+        /// An assignment of all trivial units.
+    case trivialUnitPropagation([Variable: Bool])
         /// An individual decision which was made.
     case decision(Decision)
     }
@@ -249,6 +254,44 @@ private extension CDCLSolver.Context {
     mutating func stepOnce() -> CDCLSolver.IntermediateState? {
         solver.iterations += 1
 
+        // If the decision stack is empty, then we must look for any trivial
+        // (single clause) units (which are not handled as part of CDCL's normal
+        // unit propagation phase).
+        if decisions.isEmpty {
+            // Collect the trivial units.
+            var trivialUnits: [Variable: Bool] = [:]
+            for clause in formula.clauses + learnedClauses where clause.terms.count == 1 {
+                let term = clause.terms[0]
+
+                if let prior = trivialUnits[term.variable] {
+                    if prior == term.positive {
+                        continue
+                    } else {
+                        return nil
+                    }
+                }
+
+                trivialUnits[term.variable] = term.positive
+            }
+
+            // Apply all the trivial units.
+            if !trivialUnits.isEmpty {
+                for (variable, value) in trivialUnits {
+                    let next = propagateUnits(binding: variable, to: value, at: 0, on: implications)
+
+                    // If we found a conflict at this point, the formula is unsatisfiable.
+                    if next.isInConflict {
+                        return nil
+                    }
+                
+                    // Record the decision and update the context.
+                    self.decisions.append(
+                        CDCLSolver.Decision(level: 0, variable: variable, value: value, implications: next))
+                }
+                return .trivialUnitPropagation(trivialUnits)
+            }
+        }
+        
         // Select a new literal to branch on.
         let selectedVariables = Set(currentAssignment.bindings.keys)
         let allVariables = Set(formula.clauses.flatMap{ $0.terms.map{ $0.variable } })
