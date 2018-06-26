@@ -340,38 +340,35 @@ private extension CDCLSolver.Context {
         // If the decision stack is empty, then we must look for any trivial
         // (single clause) units (which are not handled as part of CDCL's normal
         // unit propagation phase).
+        //
+        // FIXME: Given how backtracking works, we re-discover all of the units
+        // every time we discover a new unit clause (since we will bactrack to
+        // decision level 0). We could theoretically work a little harder to be
+        // smarter during backtracking to avoid this redundant work.
         if decisions.isEmpty {
             // Collect the trivial units.
-            var trivialUnits: [Variable: Bool] = [:]
             for clause in formula.clauses + learnedClauses where clause.terms.count == 1 {
                 let term = clause.terms[0]
+                let decisionLevel = decisions.count
+                let variable = term.variable
+                let value = term.positive
+                let next = propagateUnits(binding: variable, to: value, at: decisionLevel, on: implications, cause: clause)
 
-                if let prior = trivialUnits[term.variable] {
-                    if prior == term.positive {
-                        continue
-                    } else {
-                        return nil
-                    }
+                // If we found a conflict at this point, the formula is unsatisfiable.
+                if next.isInConflict {
+                    return nil
                 }
 
-                trivialUnits[term.variable] = term.positive
+                // Record the decision and update the context.
+                self.decisions.append(
+                    CDCLSolver.Decision(level: decisionLevel, variable: variable, value: value, implications: next))
             }
 
-            // Apply all the trivial units.
-            if !trivialUnits.isEmpty {
-                for (variable, value) in trivialUnits {
-                    let next = propagateUnits(binding: variable, to: value, at: 0, on: implications)
-
-                    // If we found a conflict at this point, the formula is unsatisfiable.
-                    if next.isInConflict {
-                        return nil
-                    }
-                
-                    // Record the decision and update the context.
-                    self.decisions.append(
-                        CDCLSolver.Decision(level: 0, variable: variable, value: value, implications: next))
-                }
-                return .trivialUnitPropagation(trivialUnits)
+            // Report the trivial unit assignments.
+            if let decision = decisions.last {
+                // FIXME: NOTE: We can only return one decision, so we return
+                // the aggregation of all units being applied.
+                return .decision(decision)
             }
         }
         
