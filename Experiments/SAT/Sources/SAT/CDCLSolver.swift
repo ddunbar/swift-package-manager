@@ -37,6 +37,9 @@ public class CDCLSolver: Solver {
         /// The list of learned clauses.
         public var learnedClauses: [Clause] = []
 
+        /// The corresponding derivations for the learned clauses.
+        public var learnedClauseDerivations: [ClauseDerivation] = []
+
         /// The currently induced assignment.
         public var currentAssignment: Assignment {
             return implications.currentAssignment!
@@ -175,7 +178,7 @@ public class CDCLSolver: Solver {
         ///
         /// The resulting clause is guaranteed to be consistent with the original
         /// formula.
-        public func analyzeConflict() -> Clause {
+        public func analyzeConflict() -> (Clause, ClauseDerivation) {
             /// Find an implied variable (one not set via a direct decision) in the
             /// clause which was set at the given `decisionLevel`, if present.
             ///
@@ -205,6 +208,7 @@ public class CDCLSolver: Solver {
 
             let decisionLevel = conflicts[0].decisionLevel
             var clause = conflicts[0].cause
+            var derivation = ClauseDerivation()
 
             // While there are implied variables at the current level, perform a resolution.
             while let variable = findImpliedVariable(in: clause, at: decisionLevel) {
@@ -212,10 +216,11 @@ public class CDCLSolver: Solver {
                 let implication = edges.first(where: { $0.destination.variable == variable })!
 
                 // Compute the resolution of the implication cause and the result.
+                derivation.append((clause, implication.cause, variable))
                 clause = clause.resolution(with: implication.cause, on: variable)!
             }
             
-            return clause
+            return (clause, derivation)
         }
 
         public var description: String {
@@ -229,6 +234,9 @@ public class CDCLSolver: Solver {
         }
     }
 
+    /// Track the sources of a (conflict) clause derivation.
+    public typealias ClauseDerivation = [(Clause, Clause, Variable)]
+    
     /// An arbitrary intermediate state of the solver algorithm.
     public enum IntermediateState {
         /// An assignment of all trivial units.
@@ -362,11 +370,12 @@ private extension CDCLSolver.Context {
         // If we found a conflict, resolve it.
         if next.isInConflict {
             // Derive a conflict clause.
-            let clause = next.analyzeConflict()
+            let (clause, derivation) = next.analyzeConflict()
 
             // Learn the clause.
             learnedClauses.append(clause)
-            
+            learnedClauseDerivations.append(derivation)
+
             // Find the second highest decision level assigned in this clause,
             // then backtrack above that (i.e. backtrack to a point where we can
             // reconsider the impact of that choice in light of this new

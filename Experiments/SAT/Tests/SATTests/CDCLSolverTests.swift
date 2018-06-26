@@ -103,7 +103,7 @@ final class CDCDLSolverTests: XCTestCase {
             XCTAssertTrue(igraph.bind(v2, to: true, decisionLevel: 1, cause: Clause(terms: Term(not: v1), Term(v2))))
             XCTAssertFalse(igraph.bind(v2, to: false, decisionLevel: 1, cause: Clause(terms: Term(not: v1), Term(not: v2))))
             XCTAssertEqual(
-                igraph.analyzeConflict(),
+                igraph.analyzeConflict().0,
                 Clause(terms: Term(not: v1)))
         }
 
@@ -116,7 +116,7 @@ final class CDCDLSolverTests: XCTestCase {
             XCTAssertFalse(igraph.bind(v2, to: false, decisionLevel: 1, cause: Clause(terms:
                         Term(not: v0), Term(not: v1), Term(not: v2))))
             XCTAssertEqual(
-                igraph.analyzeConflict(),
+                igraph.analyzeConflict().0,
                 Clause(terms: Term(not: v0), Term(not: v1)))
         }
     }
