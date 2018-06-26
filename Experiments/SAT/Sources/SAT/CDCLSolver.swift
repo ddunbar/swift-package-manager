@@ -84,15 +84,22 @@ public class CDCLSolver: Solver {
             /// The decision level at which this node was created. 
             public let decisionLevel: Int
 
+            public init(variable: Variable, value: Bool, decisionLevel: Int) {
+                self.variable = variable
+                self.value = value
+                self.decisionLevel = decisionLevel
+            }
+            
             public var description: String {
                 return "Node{\(variable)\(value ? "" : "'")@\(decisionLevel)}"
             }
         }
 
         /// An edge represents the source of an implication.
-        public struct Edge: CustomStringConvertible {
-            /// The source node.
-            public let source: Node
+        public struct Edge: CustomStringConvertible, Equatable {
+            /// The source node, if any (a missing source node indicates an
+            /// implication via a unit clause).
+            public let source: Node?
 
             /// The destination node.
             public let destination: Node
@@ -100,8 +107,20 @@ public class CDCLSolver: Solver {
             /// The constraint which caused the implication.
             public let cause: Clause
 
+            public init(destination: Node, cause: Clause) {
+                self.source = nil
+                self.destination = destination
+                self.cause = cause
+            }
+
+            public init(source: Node, destination: Node, cause: Clause) {
+                self.source = source
+                self.destination = destination
+                self.cause = cause
+            }
+
             public var description: String {
-                return "Edge{src: \(source), dst: \(destination), cause: \(cause) }"
+                return "Edge{src: \(String(describing: source)), dst: \(destination), cause: \(cause) }"
             }
         }
 
@@ -161,12 +180,18 @@ public class CDCLSolver: Solver {
 
             // Add the implication edges, if there is a cause.
             if let cause = cause {
-                // Add an edge for every term (except the variable being bound).
-                assert(cause.terms.first(where: { $0.variable == variable }) != nil)
-                for term in cause.terms where term.variable != variable {
-                    // Find the node where this term was bound.
-                    let source = nodes.first(where: { $0.variable == term.variable })!
-                    edges.append(Edge(source: source, destination: node, cause: cause))
+                // Add the conflict edges.
+                if cause.terms.count == 1 {
+                    // Unit clauses are a special case.
+                    edges.append(Edge(destination: node, cause: cause))
+                } else {
+                    // Otherwise add an edge for every term (except the variable being bound).
+                    assert(cause.terms.first(where: { $0.variable == variable }) != nil)
+                    for term in cause.terms where term.variable != variable {
+                        // Find the node where this term was bound.
+                        let source = nodes.first(where: { $0.variable == term.variable })!
+                        edges.append(Edge(source: source, destination: node, cause: cause))
+                    }
                 }
             }
 

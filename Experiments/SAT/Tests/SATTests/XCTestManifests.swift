@@ -10,6 +10,7 @@ extension CDCDLSolverTests {
     static let __allTests = [
         ("testBasics", testBasics),
         ("testConflictResolution", testConflictResolution),
+        ("testImplicationBinding", testImplicationBinding),
     ]
 }
 

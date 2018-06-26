@@ -120,4 +120,30 @@ final class CDCDLSolverTests: XCTestCase {
                 Clause(terms: Term(not: v0), Term(not: v1)))
         }
     }
+
+    func testImplicationBinding() {
+        // Check the behavior of implication binding for unit clauses.
+        do {
+            var igraph = CDCLSolver.ImplicationGraph.empty
+            let unitClause = Clause(terms: Term(v0))
+            XCTAssertTrue(igraph.bind(v0, to: true, decisionLevel: 0, cause: unitClause))
+            let node = CDCLSolver.ImplicationGraph.Node(variable: v0, value: true, decisionLevel: 0)
+            XCTAssertEqual(igraph.nodes, [node])
+            XCTAssertEqual(igraph.edges, [
+                    CDCLSolver.ImplicationGraph.Edge(destination: node, cause: unitClause)])
+        }
+
+        // Check the behavior of implication binding for regular clauses.
+        do {
+            var igraph = CDCLSolver.ImplicationGraph.empty
+            XCTAssertTrue(igraph.bind(v0, to: true, decisionLevel: 0, cause: nil))
+            let clause = Clause(terms: Term(not: v0), Term(v1))
+            XCTAssertTrue(igraph.bind(v1, to: true, decisionLevel: 0, cause: clause))
+            let node0 = CDCLSolver.ImplicationGraph.Node(variable: v0, value: true, decisionLevel: 0)
+            let node1 = CDCLSolver.ImplicationGraph.Node(variable: v1, value: true, decisionLevel: 0)
+            XCTAssertEqual(igraph.nodes, [node0, node1])
+            XCTAssertEqual(igraph.edges, [
+                    CDCLSolver.ImplicationGraph.Edge(source: node0, destination: node1, cause: clause)])
+        }
+    }
 }
