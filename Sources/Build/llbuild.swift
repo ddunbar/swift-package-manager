@@ -232,8 +232,18 @@ public struct LLBuildManifestGenerator {
             args += ["-MD", "-MT", "dependencies", "-MF", deps]
 
             // FIXME: Some of these should come for free.
-            args += ["-std=c++17"]
             args += ["-fmodules-ts"]
+
+            // FIXME: Merge copy paste code from below.
+            
+            // Add language standard flag if needed.
+            if let ext = path.source.extension {
+                for (standard, validExtensions) in standards {
+                    if let languageStandard = standard, validExtensions.contains(ext) {
+                        args += ["-std=\(languageStandard)"]
+                    }
+                }
+            }
 
             // Generate the C++ module PCM.
             do {
@@ -286,7 +296,6 @@ public struct LLBuildManifestGenerator {
 
             // FIXME: This doesn't belong here, should be inherited.
             if let cxxModulePath = target.cxxModulePath {
-                args += ["-std=c++17"]
                 args += ["-fmodules-ts"]
                 args += ["-fmodule-file=" + cxxModulePath.asString]
             }
