@@ -222,9 +222,43 @@ public struct LLBuildManifestGenerator {
             (target.clangTarget.cLanguageStandard, SupportedLanguageExtension.cExtensions),
         ]
 
-        // If this is a C++ module target, generate the module compilation.
+        // Find C++ modules in dependencies.
+        //
+        // FIXME: This is unnecessarily expensive, we should have some bottom up accumulator somewhere.
         var extraCompileInputs: [String] = []
+        var inputCXXModules = [AbsolutePath]()
+        func addCXXModules(_ target: ResolvedTarget) {
+            // Ignore C Modules.
+            if target.underlyingTarget is SystemLibraryTarget { return }
+            if case let .clang(target)? = plan.targetMap[target],
+                   let cxxModulePath = target.cxxModulePath {
+                inputCXXModules.append(cxxModulePath)
+                extraCompileInputs.append(cxxModulePath.asString)
+            }
+        }
+        for dependency in target.target.dependencies {
+            switch dependency {
+            case .target(let target):
+                addCXXModules(target)
+
+            case .product(let product):
+                switch product.type {
+                case .executable:
+                    continue
+                // For automatic and static libraries, add their targets as static input.
+                case .library:
+                    for target in product.targets {
+                        addCXXModules(target)
+                    }
+                case .test:
+                    break
+                }
+            }
+        }
+        
+        // If this is a C++ module target, generate the module compilation.
         var commands: [Command] = []
+        let usesCXXModules = !inputCXXModules.isEmpty || target.cxxModulePath != nil
         if let cxxModulePath = target.cxxModulePath {
             let path = target.compilePaths().first(where: { $0.source == target.clangTarget.cxxModuleInterface })!
 
@@ -312,8 +346,14 @@ public struct LLBuildManifestGenerator {
             }
 
             // FIXME: This doesn't belong here, should be inherited.
-            if let cxxModulePath = target.cxxModulePath {
+            if usesCXXModules {
                 args += ["-fmodules-ts"]
+            }
+            for cxxModulePath in inputCXXModules {
+                // FIXME: We should probably switch to using -fprebuilt-module-path for this.
+                args += ["-fmodule-file=" + cxxModulePath.asString]
+            }
+            if let cxxModulePath = target.cxxModulePath {
                 args += ["-fmodule-file=" + cxxModulePath.asString]
             }
                 
