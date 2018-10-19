@@ -165,6 +165,15 @@ public final class ClangTargetBuildDescription {
         return buildParameters.buildPath.appending(component: target.c99name + ".build")
     }
 
+    /// Path to the C++ module for this target, if any.
+    var cxxModulePath: AbsolutePath? {
+        if clangTarget.isCXXModule {
+            return tempsPath.appending(component: target.c99name + ".pcm")
+        } else {
+            return nil
+        }
+    }
+    
     /// The objects in this target.
     var objects: [AbsolutePath] {
         return compilePaths().map({ $0.object })

@@ -222,7 +222,56 @@ public struct LLBuildManifestGenerator {
             (target.clangTarget.cLanguageStandard, SupportedLanguageExtension.cExtensions),
         ]
 
-        let commands: [Command] = try target.compilePaths().map({ path in
+        // If this is a C++ module target, generate the module compilation.
+        var extraCompileInputs: [String] = []
+        var commands: [Command] = []
+        if let cxxModulePath = target.cxxModulePath {
+            let path = target.compilePaths().first(where: { $0.source == target.clangTarget.cxxModuleInterface })!
+            var args = target.basicArguments()
+            let deps = cxxModulePath.asString + ".d"
+            args += ["-MD", "-MT", "dependencies", "-MF", deps]
+
+            // FIXME: Some of these should come for free.
+            args += ["-std=c++17"]
+            args += ["-fmodules-ts"]
+
+            // Generate the C++ module PCM.
+            do {
+                let args = args + [
+                    "--precompile", "-c", path.source.asString, "-o", cxxModulePath.asString]
+                let clang = ClangTool(
+                    desc: "Preprocess C++ Module \(target.target.name) \(path.filename.asString)",
+                    //FIXME: Should we add build time dependency on dependent targets?
+                    inputs: [path.source.asString],
+                    outputs: [cxxModulePath.asString],
+                    args: [try plan.buildParameters.toolchain.getClangCompiler().asString] + args,
+                    deps: deps)
+                commands.append(Command(name: cxxModulePath.asString, tool: clang))
+                extraCompileInputs.append(cxxModulePath.asString)
+            }
+
+            // Compile the C++ module interface.
+            do {
+                let args = args + ["-c", cxxModulePath.asString, "-o", path.object.asString]
+                let clang = ClangTool(
+                    desc: "Compile C++ Module \(target.target.name) \(path.filename.asString)",
+                    //FIXME: Should we add build time dependency on dependent targets?
+                    inputs: [cxxModulePath.asString],
+                    outputs: [path.object.asString],
+                    args: [try plan.buildParameters.toolchain.getClangCompiler().asString] + args,
+                    deps: deps)
+                commands.append(Command(name: path.object.asString, tool: clang))
+                extraCompileInputs.append(cxxModulePath.asString)
+            }
+        }
+        
+        commands += try target.compilePaths().compactMap({ path -> Command? in
+            // Ignore the C++ module file, if present (it is explicitly compiled
+            // separately).
+            if path.source == target.clangTarget.cxxModuleInterface {
+                return nil
+            }
+                
             var args = target.basicArguments()
             args += ["-MD", "-MT", "dependencies", "-MF", path.deps.asString]
 
@@ -235,11 +284,18 @@ public struct LLBuildManifestGenerator {
                 }
             }
 
+            // FIXME: This doesn't belong here, should be inherited.
+            if let cxxModulePath = target.cxxModulePath {
+                args += ["-std=c++17"]
+                args += ["-fmodules-ts"]
+                args += ["-fmodule-file=" + cxxModulePath.asString]
+            }
+                
             args += ["-c", path.source.asString, "-o", path.object.asString]
             let clang = ClangTool(
                 desc: "Compile \(target.target.name) \(path.filename.asString)",
                 //FIXME: Should we add build time dependency on dependent targets?
-                inputs: [path.source.asString],
+                inputs: [path.source.asString] + extraCompileInputs,
                 outputs: [path.object.asString],
                 args: [try plan.buildParameters.toolchain.getClangCompiler().asString] + args,
                 deps: path.deps.asString)

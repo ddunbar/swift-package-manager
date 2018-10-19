@@ -690,7 +690,7 @@ private extension SupportedLanguageExtension {
             return "sourcecode.c.c"
         case .m:
             return "sourcecode.c.objc"
-        case .cxx, .cc, .cpp:
+        case .cxx, .cc, .cpp, .cppm:
             return "sourcecode.cpp.cpp"
         case .mm:
             return "sourcecode.cpp.objcpp"

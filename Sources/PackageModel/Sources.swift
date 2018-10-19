@@ -51,6 +51,8 @@ public enum SupportedLanguageExtension: String {
     case cc
     case cpp
     case cxx
+    // FIXME: We should allow the other variations, presumably.
+    case cppm
 
     /// Returns a set of valid swift extensions.
     public static var swiftExtensions: Set<String> = {
@@ -64,7 +66,7 @@ public enum SupportedLanguageExtension: String {
 
     /// Returns a set of valid cpp extensions.
     public static var cppExtensions: Set<String> = {
-        SupportedLanguageExtension.stringSet(mm, cc, cpp, cxx)
+        SupportedLanguageExtension.stringSet(mm, cc, cpp, cxx, cppm)
     }()
 
     /// Returns a set of valid c family extensions.

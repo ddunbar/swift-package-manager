@@ -154,6 +154,14 @@ public class ClangTarget: Target {
     /// The C++ language standard flag.
     public let cxxLanguageStandard: String?
 
+    /// True if this target defines a C++ module.
+    public var isCXXModule: Bool {
+        return cxxModuleInterface != nil
+    }
+
+    /// The path to the C++ module interface file, if a C++ module.
+    public let cxxModuleInterface: AbsolutePath?
+    
     public init(
         name: String,
         cLanguageStandard: String?,
@@ -170,6 +178,8 @@ public class ClangTarget: Target {
         self.cLanguageStandard = cLanguageStandard
         self.cxxLanguageStandard = cxxLanguageStandard
         self.includeDir = includeDir
+        // FIXME: Only detect this if C++ modules TS support is enabled.
+        self.cxxModuleInterface = sources.paths.first(where: { $0.basename == name + ".cppm" })
         super.init(
             name: name,
             type: type,
