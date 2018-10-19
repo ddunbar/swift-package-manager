@@ -227,28 +227,29 @@ public struct LLBuildManifestGenerator {
         var commands: [Command] = []
         if let cxxModulePath = target.cxxModulePath {
             let path = target.compilePaths().first(where: { $0.source == target.clangTarget.cxxModuleInterface })!
-            var args = target.basicArguments()
-            let deps = cxxModulePath.asString + ".d"
-            args += ["-MD", "-MT", "dependencies", "-MF", deps]
-
-            // FIXME: Some of these should come for free.
-            args += ["-fmodules-ts"]
-
-            // FIXME: Merge copy paste code from below.
-            
-            // Add language standard flag if needed.
-            if let ext = path.source.extension {
-                for (standard, validExtensions) in standards {
-                    if let languageStandard = standard, validExtensions.contains(ext) {
-                        args += ["-std=\(languageStandard)"]
-                    }
-                }
-            }
 
             // Generate the C++ module PCM.
             do {
-                let args = args + [
-                    "--precompile", "-c", path.source.asString, "-o", cxxModulePath.asString]
+                var args = target.basicArguments()
+
+                // FIXME: Some of these should come for free.
+                args += ["-fmodules-ts"]
+
+                // FIXME: Merge copy paste code from below.
+            
+                // Add language standard flag if needed.
+                if let ext = path.source.extension {
+                    for (standard, validExtensions) in standards {
+                        if let languageStandard = standard, validExtensions.contains(ext) {
+                            args += ["-std=\(languageStandard)"]
+                        }
+                    }
+                }
+                args += ["--precompile", "-c", path.source.asString, "-o", cxxModulePath.asString]
+
+                let deps = cxxModulePath.asString + ".d"
+                args += ["-MD", "-MT", "dependencies", "-MF", deps]
+                
                 let clang = ClangTool(
                     desc: "Preprocess C++ Module \(target.target.name) \(path.filename.asString)",
                     //FIXME: Should we add build time dependency on dependent targets?
@@ -262,14 +263,30 @@ public struct LLBuildManifestGenerator {
 
             // Compile the C++ module interface.
             do {
-                let args = args + ["-c", cxxModulePath.asString, "-o", path.object.asString]
+                var args = target.basicArguments(includesPreprocessing: false)
+
+                // FIXME: Some of these should come for free.
+                args += ["-fmodules-ts"]
+
+                // FIXME: Merge copy paste code from below.
+            
+                // Add language standard flag if needed.
+                if let ext = path.source.extension {
+                    for (standard, validExtensions) in standards {
+                        if let languageStandard = standard, validExtensions.contains(ext) {
+                            args += ["-std=\(languageStandard)"]
+                        }
+                    }
+                }
+
+                args += ["-c", cxxModulePath.asString, "-o", path.object.asString]
                 let clang = ClangTool(
                     desc: "Compile C++ Module \(target.target.name) \(path.filename.asString)",
                     //FIXME: Should we add build time dependency on dependent targets?
                     inputs: [cxxModulePath.asString],
                     outputs: [path.object.asString],
                     args: [try plan.buildParameters.toolchain.getClangCompiler().asString] + args,
-                    deps: deps)
+                    deps: nil)
                 commands.append(Command(name: path.object.asString, tool: clang))
                 extraCompileInputs.append(cxxModulePath.asString)
             }

@@ -215,9 +215,34 @@ public final class ClangTargetBuildDescription {
     }
 
     /// Builds up basic compilation arguments for this target.
-    public func basicArguments() -> [String] {
+    ///
+    /// - Parameters:
+    ///   - includesPreprocessing: Whether the job has a preprocessing component
+    ///     (if not, preprocessor specific arguments will be elided, if possible).
+    public func basicArguments(includesPreprocessing: Bool = true) -> [String] {
         var args = [String]()
-        args += buildParameters.toolchain.extraCCFlags
+
+        if includesPreprocessing {
+            args += buildParameters.toolchain.extraCCFlags
+        } else {
+            // FIXME: It is annoying to have to drop preprocessing arguments, we
+            // should fix Clang so this is not required:
+            //   <rdar://problem/45405336> [C++ModulesTS] Avoid need to drop preprocessor arguments when compiling a .pcm
+            //
+            // This in particular is a complete hack to drop the -F that we get
+            // passed in. Not worth cleaning up unless Clang pushes back on
+            // ignoring these.
+            var extraFlags = buildParameters.toolchain.extraCCFlags
+            while let idx = extraFlags.index(of: "-F") {
+                let next = extraFlags.index(after: idx)
+                if next < extraFlags.endIndex {
+                    extraFlags.remove(at: next)
+                    extraFlags.remove(at: idx)
+                }
+            }
+            args += extraFlags
+        }
+        
         args += optimizationArguments
         args += activeCompilationConditions
 
@@ -231,9 +256,12 @@ public final class ClangTargetBuildDescription {
             // Using modules currently conflicts with the Windows SDKs.
             args += ["-fmodules", "-fmodule-name=" + target.c99name]
         }
-        args += ["-I", clangTarget.includeDir.asString]
+
+        if includesPreprocessing {
+            args += ["-I", clangTarget.includeDir.asString]
+        }
         args += additionalFlags
-        if !buildParameters.triple.isWindows() {
+        if !buildParameters.triple.isWindows() && includesPreprocessing {
             args += moduleCacheArgs
         }
         args += buildParameters.sanitizers.compileCFlags()
