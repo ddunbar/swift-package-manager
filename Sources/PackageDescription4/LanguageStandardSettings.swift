@@ -36,6 +36,10 @@ public enum CXXLanguageStandard: String {
     case gnucxx14 = "gnu++14"
     case cxx1z = "c++1z"
     case gnucxx1z = "gnu++1z"
+    case cxx17 = "c++17"
+    case gnucxx17 = "gnu++17"
+    case cxx2a = "c++2a"
+    case gnucxx2a = "gnu++2a"
 }
 
 #if !PACKAGE_DESCRIPTION_4
