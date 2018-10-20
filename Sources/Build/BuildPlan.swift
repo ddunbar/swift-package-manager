@@ -219,7 +219,7 @@ public final class ClangTargetBuildDescription {
     /// - Parameters:
     ///   - includesPreprocessing: Whether the job has a preprocessing component
     ///     (if not, preprocessor specific arguments will be elided, if possible).
-    public func basicArguments(includesPreprocessing: Bool = true) -> [String] {
+    public func basicArguments(includesPreprocessing: Bool = true, usesCXXModules: Bool = false) -> [String] {
         var args = [String]()
 
         if includesPreprocessing {
@@ -252,6 +252,10 @@ public final class ClangTargetBuildDescription {
         }
         args += ["-fblocks"]
 
+        if usesCXXModules {
+            args += ["-fmodules-ts"]
+        }
+        
         if !buildParameters.triple.isWindows() {
             // Using modules currently conflicts with the Windows SDKs.
             args += ["-fmodules", "-fmodule-name=" + target.c99name]
@@ -261,7 +265,7 @@ public final class ClangTargetBuildDescription {
             args += ["-I", clangTarget.includeDir.asString]
         }
         args += additionalFlags
-        if !buildParameters.triple.isWindows() && includesPreprocessing {
+        if !buildParameters.triple.isWindows() && includesPreprocessing && !usesCXXModules {
             args += moduleCacheArgs
         }
         args += buildParameters.sanitizers.compileCFlags()

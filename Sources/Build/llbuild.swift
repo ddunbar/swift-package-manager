@@ -264,10 +264,7 @@ public struct LLBuildManifestGenerator {
 
             // Generate the C++ module PCM.
             do {
-                var args = target.basicArguments()
-
-                // FIXME: Some of these should come for free.
-                args += ["-fmodules-ts"]
+                var args = target.basicArguments(usesCXXModules: true)
 
                 // FIXME: Merge copy paste code from below.
             
@@ -297,10 +294,7 @@ public struct LLBuildManifestGenerator {
 
             // Compile the C++ module interface.
             do {
-                var args = target.basicArguments(includesPreprocessing: false)
-
-                // FIXME: Some of these should come for free.
-                args += ["-fmodules-ts"]
+                var args = target.basicArguments(includesPreprocessing: false, usesCXXModules: true)
 
                 // FIXME: Merge copy paste code from below.
             
@@ -333,7 +327,7 @@ public struct LLBuildManifestGenerator {
                 return nil
             }
                 
-            var args = target.basicArguments()
+            var args = target.basicArguments(usesCXXModules: usesCXXModules)
             args += ["-MD", "-MT", "dependencies", "-MF", path.deps.asString]
 
             // Add language standard flag if needed.
@@ -345,10 +339,6 @@ public struct LLBuildManifestGenerator {
                 }
             }
 
-            // FIXME: This doesn't belong here, should be inherited.
-            if usesCXXModules {
-                args += ["-fmodules-ts"]
-            }
             for cxxModulePath in inputCXXModules {
                 // FIXME: We should probably switch to using -fprebuilt-module-path for this.
                 args += ["-fmodule-file=" + cxxModulePath.asString]
